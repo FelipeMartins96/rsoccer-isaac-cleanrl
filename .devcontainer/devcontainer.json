@@ -1,0 +1,20 @@
+{
+    "name": "rsoccer-isaac-cleanrl",
+    "dockerFile": "Dockerfile",
+    "runArgs": [
+        "-it", 
+        "--rm",
+        "--gpus=all",
+        "--net", "host", 
+        "-e", "DISPLAY=${env:DISPLAY}",
+        "-v", "/tmp/.X11-unix:/tmp/.X11-unix"
+	],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-python.black-formatter"
+			]
+		}
+	}
+}
