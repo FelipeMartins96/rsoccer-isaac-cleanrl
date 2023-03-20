@@ -1,0 +1,28 @@
+# used to create the object
+name: VSS
+
+physics_engine: 'physx'
+
+# if given, will override the device setting in gym. 
+env:
+  numEnvs: 4096
+  has_grad: True
+  has_energy: True
+  has_move: True
+  has_initial_ball_vel: True
+  has_env_ou_noise: True
+  n_controlled_robots: 1
+  rand_speed_scheduler_max_step: 100000
+
+sim:
+  dt: 0.05 # 1/20 s
+  substeps: 3
+  up_axis: "z"
+  use_gpu_pipeline: True
+  gravity: [0.0, 0.0, -9.81]
+  physx:
+    use_gpu: True # set to False to run on CPU
+    contact_offset: 0.01
+    bounce_threshold_velocity: 0.1
+    max_depenetration_velocity: 10.0
+

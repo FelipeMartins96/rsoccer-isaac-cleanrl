@@ -218,18 +218,34 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
 
     # env setup
-    envs = isaacgymenvs.make(
-        seed=args.seed,
-        task=args.env_id,
-        num_envs=args.num_envs,
-        sim_device="cuda:0" if torch.cuda.is_available() and args.cuda else "cpu",
-        rl_device="cuda:0" if torch.cuda.is_available() and args.cuda else "cpu",
-        graphics_device_id=0 if torch.cuda.is_available() and args.cuda else -1,
-        headless=False if torch.cuda.is_available() and args.cuda else True,
-        multi_gpu=False,
-        virtual_screen_capture=args.capture_video,
-        force_render=False,
-    )
+    from hydra import compose, initialize
+    from isaacgymenvs.utils.reformat import omegaconf_to_dict
+    with initialize(config_path="envs"):
+        cfg = compose(config_name="VSS")
+    cfg = omegaconf_to_dict(cfg)
+    cfg['env']['numEnvs'] = args.num_envs
+    from envs.vss import VSS
+    envs = VSS(
+            cfg=cfg,
+            rl_device="cuda:0" if torch.cuda.is_available() and args.cuda else "cpu",
+            sim_device="cuda:0" if torch.cuda.is_available() and args.cuda else "cpu",
+            graphics_device_id=0 if torch.cuda.is_available() and args.cuda else -1,
+            headless=True,
+            virtual_screen_capture=args.capture_video,
+            force_render=False,
+        )
+    # envs = isaacgymenvs.make(
+    #     seed=args.seed,
+    #     task=args.env_id,
+    #     num_envs=args.num_envs,
+    #     sim_device="cuda:0" if torch.cuda.is_available() and args.cuda else "cpu",
+    #     rl_device="cuda:0" if torch.cuda.is_available() and args.cuda else "cpu",
+    #     graphics_device_id=0 if torch.cuda.is_available() and args.cuda else -1,
+    #     headless=False if torch.cuda.is_available() and args.cuda else True,
+    #     multi_gpu=False,
+    #     virtual_screen_capture=args.capture_video,
+    #     force_render=False,
+    # )
     if args.capture_video:
         envs.is_vector_env = True
         print(f"record_video_step_frequency={args.record_video_step_frequency}")
