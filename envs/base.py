@@ -2,8 +2,9 @@ import os
 import torch
 import numpy as np
 from isaacgym import gymapi, gymtorch
+from isaacgym.torch_utils import torch_rand_float, quat_from_angle_axis
 from isaacgymenvs.tasks.base.vec_task import VecTask
-
+from itertools import combinations
 
 BLUE_TEAM = 0
 YELLOW_TEAM = 1
@@ -18,9 +19,14 @@ GREEN_COLOR = gymapi.Vec3(0.0, 1.0, 0.0)
 PINK_COLOR = gymapi.Vec3(1.0, 0.0, 1.0)
 TEAM_COLORS = [BLUE_COLOR, YELLOW_COLOR]
 ID_COLORS = [RED_COLOR, GREEN_COLOR, PINK_COLOR]
+NUM_TEAMS = 2
+NUM_ROBOTS = 3
 
 
 class BASE(VecTask):
+    #####################################################################
+    ###==============================init=============================###
+    #####################################################################
     def __init__(
         self,
         cfg,
@@ -31,8 +37,8 @@ class BASE(VecTask):
         virtual_screen_capture,
         force_render,
     ):
-        self.max_episode_length = cfg['env']['maxEpisodeLength']
         self.num_fields = cfg['env']['numEnvs']
+        self.max_episode_length = cfg['env']['maxEpisodeLength']
         self.robot_max_wheel_rad_s = 42.0
         self.min_robot_placement_dist = 0.07
         self.cfg = cfg
@@ -50,18 +56,29 @@ class BASE(VecTask):
             cam_target = gymapi.Vec3(1.1, 1.5, 0.0)
             self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
 
+        self._acquire_tensors()
+        self._refresh_tensors()
+        self.reset_dones()
+        self.compute_observations()
+
     def allocate_buffers(self):
         # allocate buffers
         num_fields = self.num_fields
         num_obs = self.num_obs
         device = self.device
         self.obs_buf = torch.zeros(
-            (num_fields, 2, 3, num_obs), device=device, dtype=torch.float
+            (num_fields, NUM_TEAMS, NUM_ROBOTS, num_obs),
+            device=device,
+            dtype=torch.float,
         )
         self.states_buf = torch.zeros(
-            (num_fields, 2, 3, num_obs), device=device, dtype=torch.float
+            (num_fields, NUM_TEAMS, NUM_ROBOTS, num_obs),
+            device=device,
+            dtype=torch.float,
         )
-        self.rew_buf = torch.zeros((num_fields, 2, 3), device=device, dtype=torch.float)
+        self.rew_buf = torch.zeros(
+            (num_fields, NUM_TEAMS, NUM_ROBOTS), device=device, dtype=torch.float
+        )
         self.reset_buf = torch.ones(num_fields, device=device, dtype=torch.long)
         self.timeout_buf = torch.zeros(num_fields, device=device, dtype=torch.long)
         self.progress_buf = torch.zeros(num_fields, device=device, dtype=torch.long)
@@ -70,21 +87,10 @@ class BASE(VecTask):
 
     def _acquire_tensors(self):
         """Acquire and wrap tensors. Create views."""
-
-        self.field_scale = (
-            torch.tensor(
-                [self.field_width, self.field_height],
-                dtype=torch.float,
-                device=self.device,
-                requires_grad=False,
-            )
-            - self.min_robot_placement_dist
-        )
-
         n_field_actors = 8  # 2 side walls, 4 end walls, 2 goal walls
         num_actors = 7 + n_field_actors  # 7 = 1 ball and 6 robots
-        s_ball = 0
-        s_robots = slice(1, 7)
+        self.s_ball = 0
+        self.s_robots = slice(1, 7)
 
         _root_state = self.gym.acquire_actor_root_state_tensor(self.sim)
 
@@ -93,36 +99,29 @@ class BASE(VecTask):
         )
 
         self.root_pos = self.root_state[..., 0:2]
-        self.robots_pos = self.root_pos[:, s_robots, :]
-        self.ball_pos = self.root_pos[:, s_ball, :]
+        self.robots_pos = self.root_pos[:, self.s_robots, :].view(
+            -1, NUM_TEAMS, NUM_ROBOTS, 2
+        )
+        self.ball_pos = self.root_pos[:, self.s_ball, :]
 
         self.root_quats = self.root_state[..., 3:7]
-        self.robots_quats = self.root_quats[:, s_robots, :]
+        self.robots_quats = self.root_quats[:, self.s_robots, :].view(
+            -1, NUM_TEAMS, NUM_ROBOTS, 4
+        )
 
         self.root_vel = self.root_state[..., 7:9]
-        self.robots_vel = self.root_vel[:, s_robots, :]
-        self.ball_vel = self.root_vel[:, s_ball, :]
+        self.robots_vel = self.root_vel[:, self.s_robots, :].view(
+            -1, NUM_TEAMS, NUM_ROBOTS, 2
+        )
+        self.ball_vel = self.root_vel[:, self.s_ball, :]
 
         self.root_ang_vel = self.root_state[..., 12]
-        self.robots_ang_vel = self.root_ang_vel[:, s_robots]
+        self.robots_ang_vel = self.root_ang_vel[:, self.s_robots].view(
+            -1, NUM_TEAMS, NUM_ROBOTS
+        )
 
         self._refresh_tensors()
         self.env_reset_root_state = self.root_state[0].clone()
-        self.z_axis = torch.tensor(
-            [0.0, 0.0, 1.0], dtype=torch.float, device=self.device, requires_grad=False
-        )
-        self.yellow_goal = torch.tensor(
-            [self.field_width / 2, 0.0],
-            dtype=torch.float,
-            device=self.device,
-            requires_grad=False,
-        )
-        self.grad_offset = torch.tensor(
-            [self.goal_width, 0.0],
-            dtype=torch.float,
-            device=self.device,
-            requires_grad=False,
-        )  # Add goal depth to grad calculation to decrease goal center weight
 
         self.rw_goal = torch.zeros_like(
             self.rew_buf[:], device=self.device, requires_grad=False
@@ -137,7 +136,9 @@ class BASE(VecTask):
             self.rew_buf[:], device=self.device, requires_grad=False
         )
         self.dof_velocity_buf = torch.zeros(
-            (self.num_envs, 12), device=self.device, requires_grad=False
+            (self.num_fields, NUM_TEAMS, NUM_ROBOTS, 2),
+            device=self.device,
+            requires_grad=False,
         )
         self.mirror_tensor = torch.tensor(
             [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0],
@@ -145,17 +146,122 @@ class BASE(VecTask):
             device=self.device,
             requires_grad=False,
         )
+        self.field_scale = torch.tensor(
+            [self.field_width, self.field_height],
+            dtype=torch.float,
+            device=self.device,
+            requires_grad=False,
+        ) - (self.min_robot_placement_dist * 2)
+        self.grad_offset = torch.tensor(
+            [self.goal_width, 0.0],
+            dtype=torch.float,
+            device=self.device,
+            requires_grad=False,
+        )  # Add goal depth to grad calculation to decrease goal center weight
+        self.yellow_goal = torch.tensor(
+            [self.field_width / 2, 0.0],
+            dtype=torch.float,
+            device=self.device,
+            requires_grad=False,
+        )
+        self.z_axis = torch.tensor(
+            [0.0, 0.0, 1.0], dtype=torch.float, device=self.device, requires_grad=False
+        )
+        entities_ids = list(range(7))  # 7 = 6 Robots + 1 Ball
+        self.entities_pairs = torch.tensor(
+            list(combinations(entities_ids, 2)), device=self.device, requires_grad=False
+        )
 
+    #####################################################################
+    ###==============================step=============================###
+    #####################################################################
     def pre_physics_step(self, _actions):
-        print(_actions)
+        pass
 
     def post_physics_step(self):
-        print('post')
+        pass
+
+    def compute_observations(self):
+        pass
+
+    def reset_dones(self):
+        env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
+
+        if len(env_ids) > 0:
+            # Reset env state
+            self.root_state[env_ids] = self.env_reset_root_state
+
+            close_ids = env_ids
+            rand_pos = torch.zeros(
+                (len(env_ids), 7, 2),  # 7 = 6 Robots + Ball, 2 = X,Y
+                dtype=torch.float,
+                device=self.device,
+                requires_grad=False,
+            )
+            while len(close_ids):
+                # randomize positions
+                rand_pos[close_ids] = (
+                    torch.rand(
+                        (len(close_ids), 7, 2),  # 7 = 6 Robots + Ball, 2 = X,Y
+                        dtype=torch.float,
+                        device=self.device,
+                        requires_grad=False,
+                    )
+                    - 0.5
+                ) * self.field_scale
+                # Check for colliding robots
+                dists = torch.linalg.norm(
+                    rand_pos[:, self.entities_pairs[:, 0], :]
+                    - rand_pos[:, self.entities_pairs[:, 1], :],
+                    dim=2,
+                )
+                too_close = torch.any(dists < self.min_robot_placement_dist, dim=1)
+                close_ids = too_close.nonzero(as_tuple=False).squeeze(-1)
+
+            self.ball_pos[env_ids] = rand_pos[:, self.s_ball]
+            self.robots_pos[env_ids] = rand_pos[:, self.s_robots].view(
+                -1, NUM_TEAMS, NUM_ROBOTS, 2
+            )
+
+            # randomize rotations
+            rand_angles = torch_rand_float(
+                -np.pi,
+                np.pi,
+                (len(env_ids), NUM_TEAMS * NUM_ROBOTS),
+                device=self.device,
+            )
+            self.robots_quats[env_ids] = quat_from_angle_axis(
+                rand_angles, self.z_axis
+            ).view(-1, 2, 3, 4)
+
+            # randomize ball velocities
+            rand_ball_vel = (
+                torch.rand(
+                    (len(env_ids), 2),
+                    dtype=torch.float,
+                    device=self.device,
+                    requires_grad=False,
+                )
+                - 0.5
+            ) * 1
+            self.ball_vel[env_ids] = rand_ball_vel
+
+            self.gym.set_actor_root_state_tensor(
+                self.sim, gymtorch.unwrap_tensor(self.root_state)
+            )
+
+            self.rw_goal[env_ids] = 0.0
+            self.rw_grad[env_ids] = 0.0
+            self.rw_energy[env_ids] = 0.0
+            self.rw_move[env_ids] = 0.0
+            self.dof_velocity_buf[env_ids] *= 0.0
+
+    def _refresh_tensors(self):
+        self.gym.refresh_actor_root_state_tensor(self.sim)
 
     #####################################################################
     ###===========================create_sim==========================###
     #####################################################################
-
     def create_sim(self):
         self.env_total_width, self.env_total_height = 2, 1.5  # X and Y coords
         self.field_width, self.field_height = 1.5, 1.3
