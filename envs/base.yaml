@@ -1,8 +1,8 @@
 physics_engine: 'physx'
 env:
   numEnvs: 9
-  numObservations: 2
-  numActions: 1
+  numObservations: 3
+  numActions: 2
   maxEpisodeLength: 30
 sim:
   use_gpu_pipeline: True

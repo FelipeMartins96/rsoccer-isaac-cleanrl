@@ -1,6 +1,7 @@
 import os
 import torch
 import numpy as np
+from gym.spaces import Box
 from isaacgym import gymapi, gymtorch
 from isaacgym.torch_utils import torch_rand_float, quat_from_angle_axis
 from isaacgymenvs.tasks.base.vec_task import VecTask
@@ -51,6 +52,11 @@ class BASE(VecTask):
             virtual_screen_capture=virtual_screen_capture,
             force_render=force_render,
         )
+        self.obs_space = Box(-np.inf, np.inf, (NUM_TEAMS, NUM_ROBOTS, self.num_obs))
+        self.state_space = Box(
+            -np.inf, np.inf, (NUM_TEAMS, NUM_ROBOTS, self.num_states)
+        )
+        self.act_space = Box(-1, 1, (NUM_TEAMS, NUM_ROBOTS, self.num_actions))
         if self.viewer != None:
             cam_pos = gymapi.Vec3(1.1, 1.49, 5)
             cam_target = gymapi.Vec3(1.1, 1.5, 0.0)
@@ -176,13 +182,53 @@ class BASE(VecTask):
     ###==============================step=============================###
     #####################################################################
     def pre_physics_step(self, _actions):
-        pass
+        # reset progress_buf for envs reseted on previous step
+        env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
+        self.progress_buf[env_ids] = 0
+
+        self.dof_velocity_buf[:] = _actions.to(self.device)
+
+        act = self.dof_velocity_buf * self.robot_max_wheel_rad_s
+        self.gym.set_dof_velocity_target_tensor(self.sim, gymtorch.unwrap_tensor(act))
 
     def post_physics_step(self):
-        pass
+        self.progress_buf += 1
+
+        self.compute_rewards_and_dones()
+
+        # Save observations previously to resets
+        self.compute_observations()
+        self.extras["terminal_observation"] = self.obs_buf.clone().to(self.rl_device)
+        env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
+        self.extras["progress_buffer"] = (
+            self.progress_buf.clone().to(self.rl_device).float()
+        )
+        if len(env_ids):
+            self.extras['episode'] = {
+                "goal": self.rw_goal[env_ids].clone().to(self.rl_device),
+                "grad": self.rw_grad[env_ids].clone().to(self.rl_device),
+                "energy": self.rw_energy[env_ids].clone().to(self.rl_device),
+                "move": self.rw_move[env_ids].clone().to(self.rl_device),
+            }
+
+        self.reset_dones()
+        self.compute_observations()
 
     def compute_observations(self):
+        # TODO
         pass
+
+    def compute_rewards_and_dones(self):
+        # TODO compute rewards
+        self._refresh_tensors()
+        self.reset_buf = compute_vss_dones(
+            ball_pos=self.ball_pos,
+            reset_buf=self.reset_buf,
+            progress_buf=self.progress_buf,
+            max_episode_length=self.max_episode_length,
+            field_width=self.field_width,
+            goal_height=self.goal_height,
+        )
 
     def reset_dones(self):
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
@@ -191,7 +237,7 @@ class BASE(VecTask):
             # Reset env state
             self.root_state[env_ids] = self.env_reset_root_state
 
-            close_ids = env_ids
+            close_ids = torch.arange(len(env_ids), device=self.device)
             rand_pos = torch.zeros(
                 (len(env_ids), 7, 2),  # 7 = 6 Robots + Ball, 2 = X,Y
                 dtype=torch.float,
@@ -444,3 +490,32 @@ class BASE(VecTask):
         add_side_walls()
         add_end_walls()
         add_goal_walls()
+
+
+#####################################################################
+###=========================jit functions=========================###
+#####################################################################
+
+
+@torch.jit.script
+def compute_vss_dones(
+    ball_pos,
+    reset_buf,
+    progress_buf,
+    max_episode_length,
+    field_width,
+    goal_height,
+):
+    # type: (Tensor, Tensor, Tensor, float, float, float) -> Tensor
+
+    # CHECK GOAL
+    is_goal = (torch.abs(ball_pos[:, 0]) > (field_width / 2)) & (
+        torch.abs(ball_pos[:, 1]) < (goal_height / 2)
+    )
+    ones = torch.ones_like(reset_buf)
+    reset = torch.zeros_like(reset_buf)
+
+    reset = torch.where(is_goal, ones, reset)
+    reset = torch.where(progress_buf >= max_episode_length, ones, reset)
+
+    return reset
