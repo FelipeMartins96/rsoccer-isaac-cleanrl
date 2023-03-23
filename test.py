@@ -23,4 +23,4 @@ envs = BASE(
 )
 
 while 1:
-    envs.step(torch.ones((envs.num_envs,) + envs.act_space.shape, device=envs.device))
+    o, r, d, i = envs.step(torch.ones((envs.num_envs,) + envs.act_space.shape, device=envs.device))

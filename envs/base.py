@@ -1,6 +1,7 @@
 import os
 import torch
 import numpy as np
+from torch import Tensor
 from gym.spaces import Box
 from isaacgym import gymapi, gymtorch
 from isaacgym.torch_utils import torch_rand_float, quat_from_angle_axis
@@ -42,6 +43,10 @@ class BASE(VecTask):
         self.max_episode_length = cfg['env']['maxEpisodeLength']
         self.robot_max_wheel_rad_s = 42.0
         self.min_robot_placement_dist = 0.07
+        self.w_goal = 10
+        self.w_grad = 2
+        self.w_energy = 1 / 500
+        self.w_move = 3
         self.cfg = cfg
         super().__init__(
             config=cfg,
@@ -219,8 +224,33 @@ class BASE(VecTask):
         pass
 
     def compute_rewards_and_dones(self):
-        # TODO compute rewards
+        prev_ball_pos = self.ball_pos.clone()
+        prev_robots_pos = self.robots_pos.clone()
+
         self._refresh_tensors()
+
+        goal_rw = (
+            compute_goal_rw(
+                self.rew_buf, self.ball_pos, self.field_width, self.goal_height
+            )
+            * self.w_goal
+        )
+        self.rw_goal += goal_rw
+
+        grad_rw = (
+            compute_grad_rw(
+                self.rew_buf, prev_ball_pos, self.ball_pos, self.yellow_goal
+            )
+            * self.w_grad
+        )
+        self.rw_grad += grad_rw
+
+        # move_rw = compute_move_rw() # TODO
+        # energy_rw = compute_energy_rw() # TODO
+
+        self.rew_buf = goal_rw + grad_rw
+
+        # TODO compute rewards
         self.reset_buf = compute_vss_dones(
             ball_pos=self.ball_pos,
             reset_buf=self.reset_buf,
@@ -495,6 +525,43 @@ class BASE(VecTask):
 #####################################################################
 ###=========================jit functions=========================###
 #####################################################################
+
+
+@torch.jit.script
+def compute_goal_rw(rew_buf, ball_pos, field_width, goal_height):
+    # type: (Tensor, Tensor, float, float) -> Tensor
+    ones = torch.ones_like(rew_buf[:, 0, 0])
+    zeros = torch.zeros_like(ones)
+
+    # CHECK GOAL
+    is_goal = (torch.abs(ball_pos[:, 0]) > (field_width / 2)) & (
+        torch.abs(ball_pos[:, 1]) < (goal_height / 2)
+    )
+    is_goal_blue = is_goal & (ball_pos[..., 0] > 0)
+    is_goal_yellow = is_goal & (ball_pos[..., 0] < 0)
+
+    goal = torch.where(is_goal_blue, ones, zeros)
+    goal = torch.where(is_goal_yellow, -ones, goal)
+    goal = goal.view(-1, 1, 1).expand(-1, 1, 3)
+    return torch.cat((goal, -goal), 1)
+
+
+@torch.jit.script
+def compute_grad_rw(rew_buf, prev_ball_pos, ball_pos, yellow_goal):
+    # type: (Tensor, Tensor, Tensor, Tensor) -> Tensor
+
+    # Prev Pot
+    dist_ball_left_goal = torch.norm(prev_ball_pos - (-yellow_goal), dim=1)
+    dist_ball_right_goal = torch.norm(prev_ball_pos - yellow_goal, dim=1)
+    prev_pot = dist_ball_left_goal - dist_ball_right_goal
+
+    # New Pot
+    dist_ball_left_goal = torch.norm(ball_pos - (-yellow_goal), dim=1)
+    dist_ball_right_goal = torch.norm(ball_pos - yellow_goal, dim=1)
+    pot = dist_ball_left_goal - dist_ball_right_goal
+
+    grad = (pot - prev_pot).view(-1, 1, 1).expand(-1, 1, 3)
+    return torch.cat((grad, -grad), 1)
 
 
 @torch.jit.script
