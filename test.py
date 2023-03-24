@@ -22,5 +22,8 @@ envs = BASE(
     force_render=True,
 )
 
+act = torch.ones((envs.num_envs,) + envs.act_space.shape, device=envs.device)
+act[:, :, :, 0] = -2.0
+
 while 1:
-    o, r, d, i = envs.step(torch.ones((envs.num_envs,) + envs.act_space.shape, device=envs.device))
+    o, r, d, i = envs.step(act)

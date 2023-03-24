@@ -134,18 +134,11 @@ class BASE(VecTask):
         self._refresh_tensors()
         self.env_reset_root_state = self.root_state[0].clone()
 
-        self.rw_goal = torch.zeros_like(
-            self.rew_buf[:], device=self.device, requires_grad=False
-        )
-        self.rw_grad = torch.zeros_like(
-            self.rew_buf[:], device=self.device, requires_grad=False
-        )
-        self.rw_energy = torch.zeros_like(
-            self.rew_buf[:], device=self.device, requires_grad=False
-        )
-        self.rw_move = torch.zeros_like(
-            self.rew_buf[:], device=self.device, requires_grad=False
-        )
+        self.rew_goal_ep_return = torch.zeros_like(self.rew_buf)
+        self.rew_grad_ep_return = torch.zeros_like(self.rew_buf)
+        self.ep_return_energy_rew = torch.zeros_like(self.rew_buf)
+        self.rew_move_ep_return = torch.zeros_like(self.rew_buf)
+
         self.dof_velocity_buf = torch.zeros(
             (self.num_fields, NUM_TEAMS, NUM_ROBOTS, 2),
             device=self.device,
@@ -190,7 +183,6 @@ class BASE(VecTask):
         # reset progress_buf for envs reseted on previous step
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
         self.progress_buf[env_ids] = 0
-
         self.dof_velocity_buf[:] = _actions.to(self.device)
 
         act = self.dof_velocity_buf * self.robot_max_wheel_rad_s
@@ -210,10 +202,10 @@ class BASE(VecTask):
         )
         if len(env_ids):
             self.extras['episode'] = {
-                "goal": self.rw_goal[env_ids].clone().to(self.rl_device),
-                "grad": self.rw_grad[env_ids].clone().to(self.rl_device),
-                "energy": self.rw_energy[env_ids].clone().to(self.rl_device),
-                "move": self.rw_move[env_ids].clone().to(self.rl_device),
+                "goal": self.rew_goal_ep_return[env_ids].clone().to(self.rl_device),
+                "grad": self.rew_grad_ep_return[env_ids].clone().to(self.rl_device),
+                "energy": self.ep_return_energy_rew[env_ids].clone().to(self.rl_device),
+                "move": self.rew_move_ep_return[env_ids].clone().to(self.rl_device),
             }
 
         self.reset_dones()
@@ -229,28 +221,47 @@ class BASE(VecTask):
 
         self._refresh_tensors()
 
-        goal_rw = (
-            compute_goal_rw(
-                self.rew_buf, self.ball_pos, self.field_width, self.goal_height
+        self.rew_buf *= 0
+        # Goal Rewards
+        if self.w_goal > 0:
+            goal_rew = (
+                compute_goal_rew(
+                    self.rew_buf, self.ball_pos, self.field_width, self.goal_height
+                )
+                * self.w_goal
             )
-            * self.w_goal
-        )
-        self.rw_goal += goal_rw
-
-        grad_rw = (
-            compute_grad_rw(
-                self.rew_buf, prev_ball_pos, self.ball_pos, self.yellow_goal
+            self.rew_goal_ep_return += goal_rew
+            self.rew_buf += goal_rew
+        # Grad Rewards
+        if self.w_grad > 0:
+            grad_rew = (
+                compute_grad_rew(
+                    self.rew_buf, prev_ball_pos, self.ball_pos, self.yellow_goal
+                )
+                * self.w_grad
             )
-            * self.w_grad
-        )
-        self.rw_grad += grad_rw
+            self.rew_grad_ep_return += grad_rew
+            self.rew_buf += grad_rew
+        # Move Rewards
+        if self.w_move > 0:
+            move_rew = (
+                compute_move_rew(
+                    prev_robots_pos,
+                    self.robots_pos,
+                    prev_ball_pos,
+                    self.ball_pos,
+                )
+                * self.w_move
+            )
+            self.rew_move_ep_return += move_rew
+            self.rew_buf += move_rew
+        # Energy Reward (Penalization)
+        if self.w_energy > 0:
+            energy_rew = compute_energy_rew(self.dof_velocity_buf) * self.w_energy
+            self.ep_return_energy_rew += energy_rew
+            self.rew_buf += energy_rew
 
-        # move_rw = compute_move_rw() # TODO
-        # energy_rw = compute_energy_rw() # TODO
-
-        self.rew_buf = goal_rw + grad_rw
-
-        # TODO compute rewards
+        # Dones
         self.reset_buf = compute_vss_dones(
             ball_pos=self.ball_pos,
             reset_buf=self.reset_buf,
@@ -326,10 +337,10 @@ class BASE(VecTask):
                 self.sim, gymtorch.unwrap_tensor(self.root_state)
             )
 
-            self.rw_goal[env_ids] = 0.0
-            self.rw_grad[env_ids] = 0.0
-            self.rw_energy[env_ids] = 0.0
-            self.rw_move[env_ids] = 0.0
+            self.rew_goal_ep_return[env_ids] = 0.0
+            self.rew_grad_ep_return[env_ids] = 0.0
+            self.ep_return_energy_rew[env_ids] = 0.0
+            self.rew_move_ep_return[env_ids] = 0.0
             self.dof_velocity_buf[env_ids] *= 0.0
 
     def _refresh_tensors(self):
@@ -528,7 +539,7 @@ class BASE(VecTask):
 
 
 @torch.jit.script
-def compute_goal_rw(rew_buf, ball_pos, field_width, goal_height):
+def compute_goal_rew(rew_buf, ball_pos, field_width, goal_height):
     # type: (Tensor, Tensor, float, float) -> Tensor
     ones = torch.ones_like(rew_buf[:, 0, 0])
     zeros = torch.zeros_like(ones)
@@ -547,7 +558,7 @@ def compute_goal_rw(rew_buf, ball_pos, field_width, goal_height):
 
 
 @torch.jit.script
-def compute_grad_rw(rew_buf, prev_ball_pos, ball_pos, yellow_goal):
+def compute_grad_rew(rew_buf, prev_ball_pos, ball_pos, yellow_goal):
     # type: (Tensor, Tensor, Tensor, Tensor) -> Tensor
 
     # Prev Pot
@@ -562,6 +573,25 @@ def compute_grad_rw(rew_buf, prev_ball_pos, ball_pos, yellow_goal):
 
     grad = (pot - prev_pot).view(-1, 1, 1).expand(-1, 1, 3)
     return torch.cat((grad, -grad), 1)
+
+
+@torch.jit.script
+def compute_move_rew(p_robots, robots, p_ball, ball):
+    # type: (Tensor, Tensor, Tensor, Tensor) -> Tensor
+
+    # Previous Distance
+    p_dist = torch.norm(p_robots.view(-1, 6, 2) - p_ball.unsqueeze(1), dim=-1)
+
+    # Current Distance
+    dist = torch.norm(robots.view(-1, 6, 2) - ball.unsqueeze(1), dim=-1)
+
+    return (p_dist - dist).view(-1, 2, 3)
+
+
+@torch.jit.script
+def compute_energy_rew(actions):
+    # type: (Tensor) -> Tensor
+    return -torch.mean(torch.abs(actions), dim=-1)
 
 
 @torch.jit.script
