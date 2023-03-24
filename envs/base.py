@@ -4,7 +4,7 @@ import numpy as np
 from torch import Tensor
 from gym.spaces import Box
 from isaacgym import gymapi, gymtorch
-from isaacgym.torch_utils import torch_rand_float, quat_from_angle_axis
+from isaacgym.torch_utils import torch_rand_float, quat_from_angle_axis, get_euler_xyz
 from isaacgymenvs.tasks.base.vec_task import VecTask
 from itertools import combinations
 
@@ -128,7 +128,7 @@ class BASE(VecTask):
 
         self.root_ang_vel = self.root_state[..., 12]
         self.robots_ang_vel = self.root_ang_vel[:, self.s_robots].view(
-            -1, NUM_TEAMS, NUM_ROBOTS
+            -1, NUM_TEAMS, NUM_ROBOTS, 1
         )
 
         self._refresh_tensors()
@@ -141,12 +141,6 @@ class BASE(VecTask):
 
         self.dof_velocity_buf = torch.zeros(
             (self.num_fields, NUM_TEAMS, NUM_ROBOTS, 2),
-            device=self.device,
-            requires_grad=False,
-        )
-        self.mirror_tensor = torch.tensor(
-            [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0],
-            dtype=torch.float,
             device=self.device,
             requires_grad=False,
         )
@@ -174,6 +168,15 @@ class BASE(VecTask):
         entities_ids = list(range(7))  # 7 = 6 Robots + 1 Ball
         self.entities_pairs = torch.tensor(
             list(combinations(entities_ids, 2)), device=self.device, requires_grad=False
+        )
+        self.mirror_tensor = torch.tensor(
+            [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0],
+            dtype=torch.float,
+            device=self.device,
+            requires_grad=False,
+        )
+        self.permutations = torch.tensor(
+            [[0, 1, 2], [1, 2, 0], [2, 0, 1]], device=self.device, requires_grad=False
         )
 
     #####################################################################
@@ -212,8 +215,17 @@ class BASE(VecTask):
         self.compute_observations()
 
     def compute_observations(self):
-        # TODO
-        pass
+        self.obs_buf[:] = compute_obs(
+            self.ball_pos,
+            self.ball_vel,
+            self.robots_pos,
+            self.robots_vel,
+            self.robots_quats,
+            self.robots_ang_vel,
+            self.dof_velocity_buf,
+            self.permutations,
+            self.mirror_tensor,
+        )
 
     def compute_rewards_and_dones(self):
         prev_ball_pos = self.ball_pos.clone()
@@ -536,6 +548,54 @@ class BASE(VecTask):
 #####################################################################
 ###=========================jit functions=========================###
 #####################################################################
+
+
+@torch.jit.script
+def compute_obs(b_pos, b_vel, r_pos, r_vel, r_quats, r_w, r_acts, perms, mirror_tensor):
+    # type: (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor) -> Tensor
+    mirror_tensor = torch.tensor(
+        [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0],
+        dtype=torch.float,
+        device="cuda:0",
+        requires_grad=False,
+    )
+    ball = torch.cat((b_pos, b_vel), dim=-1).repeat_interleave(3, 0).view(-1, 1, 3, 4)
+    angles = get_euler_xyz(r_quats.reshape(-1, 4))[2].view(-1, 2, 3, 1)
+    robots = torch.cat(
+        (
+            r_pos,
+            r_vel,
+            torch.cos(angles),
+            torch.sin(angles),
+            r_w,
+            r_acts,
+        ),
+        dim=-1,
+    )
+    obs = torch.cat(
+        (
+            ball,
+            robots[:, 0, perms].view(-1, 1, 3, 27),
+            robots[:, 1, :, :-2].repeat_interleave(3, 0).view(-1, 1, 3, 21),
+        ),
+        -1,
+    )
+    robots *= mirror_tensor
+    obs = torch.cat(
+        (
+            obs,
+            torch.cat(
+                (
+                    -ball,
+                    robots[:, 1, perms].view(-1, 1, 3, 27),
+                    robots[:, 0, :, :-2].repeat_interleave(3, 0).view(-1, 1, 3, 21),
+                ),
+                -1,
+            ),
+        ),
+        1,
+    )
+    return obs
 
 
 @torch.jit.script
