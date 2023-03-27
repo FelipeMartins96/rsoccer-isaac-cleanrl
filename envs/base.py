@@ -41,12 +41,12 @@ class BASE(VecTask):
     ):
         self.num_fields = cfg['env']['numEnvs']
         self.max_episode_length = cfg['env']['maxEpisodeLength']
+        self.w_goal = cfg['env']['rew_weights']['goal']
+        self.w_grad = cfg['env']['rew_weights']['grad']
+        self.w_move = cfg['env']['rew_weights']['move']
+        self.w_energy = cfg['env']['rew_weights']['energy']
         self.robot_max_wheel_rad_s = 42.0
         self.min_robot_placement_dist = 0.07
-        self.w_goal = 10
-        self.w_grad = 2
-        self.w_energy = 1 / 500
-        self.w_move = 3
         self.cfg = cfg
         super().__init__(
             config=cfg,
