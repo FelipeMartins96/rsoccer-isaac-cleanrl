@@ -221,11 +221,11 @@ if __name__ == "__main__":
     from hydra import compose, initialize
     from isaacgymenvs.utils.reformat import omegaconf_to_dict
     with initialize(config_path="envs"):
-        cfg = compose(config_name="base")
+        cfg = compose(config_name="vss")
     cfg = omegaconf_to_dict(cfg)
     cfg['env']['numEnvs'] = args.num_envs
-    from envs.base import BASE
-    envs = BASE(
+    from envs.vss import VSS
+    envs = VSS(
             cfg=cfg,
             rl_device="cuda:0" if torch.cuda.is_available() and args.cuda else "cpu",
             sim_device="cuda:0" if torch.cuda.is_available() and args.cuda else "cpu",

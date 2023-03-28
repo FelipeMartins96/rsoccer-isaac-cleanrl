@@ -20,7 +20,7 @@ class SingleAgent(gym.Wrapper):
         observations, rewards, dones, infos = super().step(self.action_buf)
         return (
             {'obs': observations['obs'][:, 0, 0, :]},
-            rewards[:, 0, 0],
+            rewards[:, 0, 0].sum(-1),
             dones,
             infos,
         )
