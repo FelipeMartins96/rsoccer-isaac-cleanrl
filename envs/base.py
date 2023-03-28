@@ -63,8 +63,8 @@ class BASE(VecTask):
         )
         self.act_space = Box(-1, 1, (NUM_TEAMS, NUM_ROBOTS, self.num_actions))
         if self.viewer != None:
-            cam_pos = gymapi.Vec3(1.1, 1.49, 5)
-            cam_target = gymapi.Vec3(1.1, 1.5, 0.0)
+            cam_pos = gymapi.Vec3(1.7, 1.09, 4.6)
+            cam_target = gymapi.Vec3(1.7, 1.1, 0.0)
             self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
 
         self._acquire_tensors()

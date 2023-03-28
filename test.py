@@ -9,6 +9,8 @@ from envs.base import BASE
 from hydra import compose, initialize
 from isaacgymenvs.utils.reformat import omegaconf_to_dict
 
+from envs.wrappers import SingleAgent
+
 with initialize(config_path="envs"):
     cfg = compose(config_name="base")
 cfg = omegaconf_to_dict(cfg)
@@ -22,8 +24,10 @@ envs = BASE(
     force_render=True,
 )
 
-act = torch.ones((envs.num_envs,) + envs.act_space.shape, device=envs.device)
-act[:, :, :, 0] = -2.0
+envs = SingleAgent(envs)
+envs.reset()
+act = torch.ones((envs.num_envs,) + envs.action_space.shape, device=envs.device)
+act[..., 0] = -2.0
 
 while 1:
     o, r, d, i = envs.step(act)

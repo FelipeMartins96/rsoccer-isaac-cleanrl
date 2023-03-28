@@ -1,9 +1,9 @@
 physics_engine: 'physx'
 env:
-  numEnvs: 2
+  numEnvs: 4096
   numObservations: 52
   numActions: 2
-  maxEpisodeLength: 30
+  maxEpisodeLength: 400
   clipActions: 1
   rew_weights:
     goal: 10
