@@ -9,11 +9,14 @@ from envs.vss import VSS
 from hydra import compose, initialize
 from isaacgymenvs.utils.reformat import omegaconf_to_dict
 
-from envs.wrappers import SingleAgent
+from envs.wrappers import SingleAgent, CMA, DMA
 
 with initialize(config_path="envs"):
     cfg = compose(config_name="vss")
 cfg = omegaconf_to_dict(cfg)
+
+cfg['env']['numEnvs'] = 3
+
 envs = VSS(
     cfg=cfg,
     rl_device="cuda:0",
@@ -25,9 +28,11 @@ envs = VSS(
 )
 
 envs = SingleAgent(envs)
+# envs = CMA(envs)
+# envs = DMA(envs)
 envs.reset()
 act = torch.ones((envs.num_envs,) + envs.action_space.shape, device=envs.device)
 act[..., 0] = -2.0
 
 while 1:
-    o, rew, d, i = envs.step(act)
+    obs, rew, dones, info = envs.step(act)

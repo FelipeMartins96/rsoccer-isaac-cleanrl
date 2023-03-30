@@ -223,7 +223,7 @@ if __name__ == "__main__":
     with initialize(config_path="envs"):
         cfg = compose(config_name="vss")
     cfg = omegaconf_to_dict(cfg)
-    cfg['env']['numEnvs'] = args.num_envs
+    cfg['env']['numEnvs'] = int(args.num_envs / 3)
     from envs.vss import VSS
     envs = VSS(
             cfg=cfg,
@@ -234,8 +234,10 @@ if __name__ == "__main__":
             virtual_screen_capture=args.capture_video,
             force_render=False,
         )
-    from envs.wrappers import SingleAgent
-    envs = SingleAgent(envs)
+    from envs.wrappers import SingleAgent, CMA, DMA
+    # envs = SingleAgent(envs)
+    # envs = CMA(envs)
+    envs = DMA(envs)
 
     if args.capture_video:
         envs.is_vector_env = True
