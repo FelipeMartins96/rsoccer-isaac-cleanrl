@@ -18,6 +18,35 @@ def random_ou(prev):
     )
     return noise.clamp(-1.0, 1.0)
 
+def make_env(args):
+    from hydra import compose, initialize
+    from isaacgymenvs.utils.reformat import omegaconf_to_dict
+    with initialize(config_path="."):
+        cfg = compose(config_name="vss")
+    cfg = omegaconf_to_dict(cfg)
+    assert args.cuda
+    cfg['env']['numEnvs'] = args.num_envs
+    if args.env_id == 'dma':
+        assert args.num_envs % 3 == 0
+        cfg['env']['numEnvs'] = int(args.num_envs / 3)
+    
+    from envs.vss import VSS
+    envs = VSS(
+            cfg=cfg,
+            rl_device="cuda:0",
+            sim_device="cuda:0",
+            graphics_device_id=0,
+            headless=False if args.capture_video else True,
+            virtual_screen_capture=args.capture_video,
+            force_render=False,
+        )
+    wrappers = {
+        'sa': SingleAgent,
+        'cma': CMA,
+        'dma': DMA,
+    }
+    return wrappers[args.env_id](envs)
+
 class SingleAgent(gym.Wrapper):
     def __init__(self, env):
         super().__init__(env)

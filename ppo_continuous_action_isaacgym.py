@@ -218,26 +218,8 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
 
     # env setup
-    from hydra import compose, initialize
-    from isaacgymenvs.utils.reformat import omegaconf_to_dict
-    with initialize(config_path="envs"):
-        cfg = compose(config_name="vss")
-    cfg = omegaconf_to_dict(cfg)
-    cfg['env']['numEnvs'] = int(args.num_envs / 3)
-    from envs.vss import VSS
-    envs = VSS(
-            cfg=cfg,
-            rl_device="cuda:0" if torch.cuda.is_available() and args.cuda else "cpu",
-            sim_device="cuda:0" if torch.cuda.is_available() and args.cuda else "cpu",
-            graphics_device_id=0 if torch.cuda.is_available() and args.cuda else -1,
-            headless=False if args.capture_video else True,
-            virtual_screen_capture=args.capture_video,
-            force_render=False,
-        )
-    from envs.wrappers import SingleAgent, CMA, DMA
-    # envs = SingleAgent(envs)
-    # envs = CMA(envs)
-    envs = DMA(envs)
+    from envs.wrappers import make_env
+    envs = make_env(args)
 
     if args.capture_video:
         envs.is_vector_env = True
