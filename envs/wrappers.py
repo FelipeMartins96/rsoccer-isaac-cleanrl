@@ -1,6 +1,22 @@
 import gym
 import numpy as np
+import torch
 
+def random_ou(prev):
+    ou_theta = 0.1
+    ou_sigma = 0.15
+    noise = (
+        prev
+        - ou_theta * prev
+        + torch.normal(
+            0.0,
+            ou_sigma,
+            size=prev.size(),
+            device=prev.device,
+            requires_grad=False,
+        )
+    )
+    return noise.clamp(-1.0, 1.0)
 
 class SingleAgent(gym.Wrapper):
     def __init__(self, env):
@@ -15,10 +31,13 @@ class SingleAgent(gym.Wrapper):
         return {'obs': observations['obs'][:, 0, 0, :]}
 
     def step(self, action):
+        self.action_buf[:] = random_ou(self.action_buf)
         self.act_view[:] = action
         observations, rewards, dones, infos = super().step(self.action_buf)
+        env_ids = dones.nonzero(as_tuple=False).squeeze(-1)
+        if len(env_ids) > 0:
+            self.action_buf[env_ids] *= 0
         infos['terminal_observation'] = infos['terminal_observation'][:, 0, 0, :]
-        
         return (
             {'obs': observations['obs'][:, 0, 0, :]},
             rewards[:, 0, 0].sum(-1),
@@ -43,8 +62,12 @@ class CMA(gym.Wrapper):
         return {'obs': observations['obs'][:, 0, 0, :]}
 
     def step(self, action):
+        self.action_buf[:] = random_ou(self.action_buf)
         self.act_view[:] = action
         observations, rewards, dones, infos = super().step(self.action_buf)
+        env_ids = dones.nonzero(as_tuple=False).squeeze(-1)
+        if len(env_ids) > 0:
+            self.action_buf[env_ids] *= 0
         infos['terminal_observation'] = infos['terminal_observation'][:, 0, 0, :]
         
         return (
@@ -68,8 +91,12 @@ class DMA(gym.Wrapper):
         return {'obs': observations['obs'][:, 0, :, :].reshape(-1, self.env.num_obs)}
 
     def step(self, action):
+        self.action_buf[:] = random_ou(self.action_buf)
         self.action_buf[:, 0, :, :] = action.view(-1, 3, 2)
         observations, rewards, dones, infos = super().step(self.action_buf)
+        env_ids = dones.nonzero(as_tuple=False).squeeze(-1)
+        if len(env_ids) > 0:
+            self.action_buf[env_ids] *= 0
         infos['terminal_observation'] = infos['terminal_observation'][:, 0, 0, :]
         infos['progress_buffer'] = infos['progress_buffer'].unsqueeze(1).repeat_interleave(3)
         infos['time_outs'] = infos['time_outs'].unsqueeze(1).repeat_interleave(3)
