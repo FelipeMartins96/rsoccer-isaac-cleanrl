@@ -27,9 +27,9 @@ envs = VSS(
     force_render=True,
 )
 
-envs = SingleAgent(envs)
+# envs = SingleAgent(envs)
 # envs = CMA(envs)
-# envs = DMA(envs)
+envs = DMA(envs)
 envs.reset()
 act = torch.ones((envs.num_envs,) + envs.action_space.shape, device=envs.device)
 act[..., 0] = -2.0
