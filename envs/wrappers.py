@@ -47,6 +47,45 @@ def make_env(args):
     }
     return wrappers[args.env_id](envs)
 
+class RecordEpisodeStatisticsTorch(gym.Wrapper):
+    def __init__(self, env, device):
+        super().__init__(env)
+        self.num_envs = getattr(env, "num_envs", 1)
+        self.device = device
+        self.episode_returns = None
+        self.episode_lengths = None
+
+    def reset(self, **kwargs):
+        observations = super().reset(**kwargs)
+        self.episode_returns = torch.zeros((self.num_envs, 4), dtype=torch.float32, device=self.device)
+        self.episode_lengths = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
+        self.returned_episode_returns = torch.zeros((self.num_envs, 4), dtype=torch.float32, device=self.device)
+        self.returned_episode_lengths = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
+        return observations
+
+    def step(self, action):
+        observations, rewards, dones, infos = super().step(action)
+        self.episode_returns += infos['rews']
+        self.episode_lengths += 1
+        self.returned_episode_returns[:] = self.episode_returns
+        self.returned_episode_lengths[:] = self.episode_lengths
+        self.episode_returns *= 1 - dones.unsqueeze(1)
+        self.episode_lengths *= 1 - dones
+        infos["r"] = {
+            'goal' : self.returned_episode_returns[:,0],
+            'grad' : self.returned_episode_returns[:,1],
+            'move' : self.returned_episode_returns[:,2],
+            'energy' : self.returned_episode_returns[:,3],
+            'return' : self.returned_episode_returns.sum(1),
+        }
+        infos["l"] = self.returned_episode_lengths
+        return (
+            observations,
+            rewards,
+            dones,
+            infos,
+        )
+
 class SingleAgent(gym.Wrapper):
     def __init__(self, env):
         super().__init__(env)
@@ -66,10 +105,11 @@ class SingleAgent(gym.Wrapper):
         env_ids = dones.nonzero(as_tuple=False).squeeze(-1)
         if len(env_ids) > 0:
             self.action_buf[env_ids] *= 0
+        infos['rews'] = rewards[:, 0, 0]
         infos['terminal_observation'] = infos['terminal_observation'][:, 0, 0, :]
         return (
             {'obs': observations['obs'][:, 0, 0, :]},
-            rewards[:, 0, 0].sum(-1),
+            infos['rews'].sum(-1),
             dones,
             infos,
         )
@@ -97,11 +137,12 @@ class CMA(gym.Wrapper):
         env_ids = dones.nonzero(as_tuple=False).squeeze(-1)
         if len(env_ids) > 0:
             self.action_buf[env_ids] *= 0
+        infos['rews'] = rewards[:, 0, :].mean(1)
         infos['terminal_observation'] = infos['terminal_observation'][:, 0, 0, :]
         
         return (
             {'obs': observations['obs'][:, 0, 0, :]},
-            rewards[:, 0, :].mean(1).sum(-1),
+            infos['rews'].sum(-1),
             dones,
             infos,
         )
@@ -129,10 +170,11 @@ class DMA(gym.Wrapper):
         infos['terminal_observation'] = infos['terminal_observation'][:, 0, 0, :]
         infos['progress_buffer'] = infos['progress_buffer'].unsqueeze(1).repeat_interleave(3)
         infos['time_outs'] = infos['time_outs'].unsqueeze(1).repeat_interleave(3)
+        infos['rews'] = rewards[:, 0, :].reshape(-1, 4)
         
         return (
             {'obs': observations['obs'][:, 0, :, :].reshape(-1, self.env.num_obs)},
-            rewards[:, 0, :].sum(-1).view(-1),
+            infos['rews'].sum(-1),
             dones.unsqueeze(1).repeat_interleave(3),
             infos,
         )

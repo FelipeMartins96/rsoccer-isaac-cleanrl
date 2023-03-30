@@ -42,6 +42,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions.normal import Normal
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 
 def parse_args():
@@ -109,40 +110,6 @@ def parse_args():
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
     # fmt: on
     return args
-
-
-class RecordEpisodeStatisticsTorch(gym.Wrapper):
-    def __init__(self, env, device):
-        super().__init__(env)
-        self.num_envs = getattr(env, "num_envs", 1)
-        self.device = device
-        self.episode_returns = None
-        self.episode_lengths = None
-
-    def reset(self, **kwargs):
-        observations = super().reset(**kwargs)
-        self.episode_returns = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
-        self.episode_lengths = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
-        self.returned_episode_returns = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
-        self.returned_episode_lengths = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
-        return observations
-
-    def step(self, action):
-        observations, rewards, dones, infos = super().step(action)
-        self.episode_returns += rewards
-        self.episode_lengths += 1
-        self.returned_episode_returns[:] = self.episode_returns
-        self.returned_episode_lengths[:] = self.episode_lengths
-        self.episode_returns *= 1 - dones
-        self.episode_lengths *= 1 - dones
-        infos["r"] = self.returned_episode_returns
-        infos["l"] = self.returned_episode_lengths
-        return (
-            observations,
-            rewards,
-            dones,
-            infos,
-        )
 
 
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
@@ -218,7 +185,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
 
     # env setup
-    from envs.wrappers import make_env
+    from envs.wrappers import make_env, RecordEpisodeStatisticsTorch
     envs = make_env(args)
 
     if args.capture_video:
@@ -255,7 +222,7 @@ if __name__ == "__main__":
     next_done = torch.zeros(args.num_envs, dtype=torch.float).to(device)
     num_updates = args.total_timesteps // args.batch_size
 
-    for update in range(1, num_updates + 1):
+    for update in tqdm(range(1, num_updates + 1)):
         # Annealing the rate if instructed to do so.
         if args.anneal_lr:
             frac = 1.0 - (update - 1.0) / num_updates
@@ -279,14 +246,9 @@ if __name__ == "__main__":
             if 0 <= step <= 2:
                 for idx, d in enumerate(next_done):
                     if d:
-                        episodic_return = info["r"][idx].item()
-                        print(f"global_step={global_step}, episodic_return={episodic_return}")
-                        writer.add_scalar("charts/episodic_return", episodic_return, global_step)
+                        for rw_key in info['r']:
+                            writer.add_scalar(f"charts/episodic_{rw_key}", info['r'][rw_key][idx].item(), global_step)
                         writer.add_scalar("charts/episodic_length", info["l"][idx], global_step)
-                        if "consecutive_successes" in info:  # ShadowHand and AllegroHand metric
-                            writer.add_scalar(
-                                "charts/consecutive_successes", info["consecutive_successes"].item(), global_step
-                            )
                         break
 
         # bootstrap value if not done
@@ -375,7 +337,7 @@ if __name__ == "__main__":
         writer.add_scalar("losses/old_approx_kl", old_approx_kl.item(), global_step)
         writer.add_scalar("losses/approx_kl", approx_kl.item(), global_step)
         writer.add_scalar("losses/clipfrac", np.mean(clipfracs), global_step)
-        print("SPS:", int(global_step / (time.time() - start_time)))
+        # print("SPS:", int(global_step / (time.time() - start_time)))
         writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
 
     # envs.close()
