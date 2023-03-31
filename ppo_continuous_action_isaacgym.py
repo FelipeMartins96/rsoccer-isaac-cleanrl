@@ -78,6 +78,8 @@ def parse_args():
         help="the number of steps to run in each environment per policy rollout")
     parser.add_argument("--anneal-lr", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Toggle learning rate annealing for policy and value networks")
+    parser.add_argument("--adaptative-lr", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
+        help="Toggle adaptative learning rate for policy and value networks")
     parser.add_argument("--gamma", type=float, default=0.99,
         help="the discount factor gamma")
     parser.add_argument("--gae-lambda", type=float, default=0.95,
@@ -100,6 +102,8 @@ def parse_args():
         help="the maximum norm for the gradient clipping")
     parser.add_argument("--target-kl", type=float, default=None,
         help="the target KL divergence threshold")
+    parser.add_argument("--threshold-kl", type=float, default=0.008,
+        help="the target KL threshold for adaptative learning rate")
 
     parser.add_argument("--reward-scaler", type=float, default=1000,
         help="the scale factor applied to the reward during training")
@@ -324,6 +328,14 @@ if __name__ == "__main__":
                 loss.backward()
                 nn.utils.clip_grad_norm_(agent.parameters(), args.max_grad_norm)
                 optimizer.step()
+
+                if args.adaptative_lr:
+                    current_lr = optimizer.param_groups[0]["lr"]
+                    if approx_kl > (2.0 * args.threshold_kl):
+                        lr = max(current_lr / 1.5, 1e-6)
+                    if approx_kl < (0.5 * args.threshold_kl):
+                        lr = min(current_lr * 1.5,1e-2)
+                    optimizer.param_groups[0]["lr"] = lr
 
             if args.target_kl is not None:
                 if approx_kl > args.target_kl:
