@@ -70,7 +70,7 @@ def parse_args():
         help="the id of the environment")
     parser.add_argument("--total-timesteps", type=int, default=1000000000,
         help="total timesteps of the experiments")
-    parser.add_argument("--learning-rate", type=float, default=0.0026,
+    parser.add_argument("--learning-rate", type=float, default=0.001,
         help="the learning rate of the optimizer")
     parser.add_argument("--num-envs", type=int, default=4095,
         help="the number of parallel game environments")
