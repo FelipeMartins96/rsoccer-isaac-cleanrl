@@ -74,7 +74,7 @@ def parse_args():
         help="the learning rate of the optimizer")
     parser.add_argument("--num-envs", type=int, default=4095,
         help="the number of parallel game environments")
-    parser.add_argument("--num-steps", type=int, default=256,
+    parser.add_argument("--num-steps", type=int, default=128,
         help="the number of steps to run in each environment per policy rollout")
     parser.add_argument("--anneal-lr", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Toggle learning rate annealing for policy and value networks")
@@ -105,7 +105,7 @@ def parse_args():
     parser.add_argument("--threshold-kl", type=float, default=0.008,
         help="the target KL threshold for adaptative learning rate")
 
-    parser.add_argument("--reward-scaler", type=float, default=1,
+    parser.add_argument("--reward-scaler", type=float, default=1000,
         help="the scale factor applied to the reward during training")
     parser.add_argument("--record-video-step-frequency", type=int, default=20000,
         help="the frequency at which to record the videos")
