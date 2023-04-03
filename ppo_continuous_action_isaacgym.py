@@ -105,7 +105,7 @@ def parse_args():
     parser.add_argument("--threshold-kl", type=float, default=0.008,
         help="the target KL threshold for adaptative learning rate")
 
-    parser.add_argument("--reward-scaler", type=float, default=1000,
+    parser.add_argument("--reward-scaler", type=float, default=1,
         help="the scale factor applied to the reward during training")
     parser.add_argument("--record-video-step-frequency", type=int, default=20000,
         help="the frequency at which to record the videos")
