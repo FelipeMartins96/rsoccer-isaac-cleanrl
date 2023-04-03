@@ -1,0 +1,12 @@
+#!/bin/bash
+#SBATCH --job-name=rl-isaac-training
+#SBATCH --ntasks=1
+#SBATCH --gpus=2
+#SBATCH --cpus-per-task=32
+
+eval "$('/usr/local/anaconda3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+conda activate rlgpu
+cd /home/CIN/fbm2/rsoccer-isaac-cleanrl
+__GL_SHADER_DISK_CACHE_PATH=/tmp/fbm2/.nv/GLCache
+CUDA_CACHE_PATH=/tmp/fbm2/.nv/ComputeCache
+python ppo_continuous_action_isaacgym.py --track --capture-video --exp-name network-adaptative-lr
