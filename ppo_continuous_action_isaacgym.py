@@ -94,7 +94,7 @@ def parse_args():
         help="the surrogate clipping coefficient")
     parser.add_argument("--clip-vloss", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Toggles whether or not to use a clipped loss for the value function, as per the paper.")
-    parser.add_argument("--ent-coef", type=float, default=0.0,
+    parser.add_argument("--ent-coef", type=float, default=0.01,
         help="coefficient of the entropy")
     parser.add_argument("--vf-coef", type=float, default=4,
         help="coefficient of the value function")
@@ -105,7 +105,7 @@ def parse_args():
     parser.add_argument("--threshold-kl", type=float, default=0.008,
         help="the target KL threshold for adaptative learning rate")
 
-    parser.add_argument("--reward-scaler", type=float, default=1000,
+    parser.add_argument("--reward-scaler", type=float, default=1,
         help="the scale factor applied to the reward during training")
     parser.add_argument("--record-video-step-frequency", type=int, default=20000,
         help="the frequency at which to record the videos")
