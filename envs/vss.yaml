@@ -9,7 +9,7 @@ env:
     goal: 10
     grad: 2
     move: 3
-    energy: 0.002
+    energy: 0.0
 sim:
   use_gpu_pipeline: True
   up_axis: 'z'

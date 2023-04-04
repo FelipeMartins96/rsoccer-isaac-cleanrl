@@ -94,7 +94,7 @@ def parse_args():
         help="the surrogate clipping coefficient")
     parser.add_argument("--clip-vloss", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Toggles whether or not to use a clipped loss for the value function, as per the paper.")
-    parser.add_argument("--ent-coef", type=float, default=0.01,
+    parser.add_argument("--ent-coef", type=float, default=0.0,
         help="coefficient of the entropy")
     parser.add_argument("--vf-coef", type=float, default=4,
         help="coefficient of the value function")
