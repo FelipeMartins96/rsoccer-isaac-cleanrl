@@ -84,7 +84,7 @@ def parse_args():
         help="the discount factor gamma")
     parser.add_argument("--gae-lambda", type=float, default=0.95,
         help="the lambda for the general advantage estimation")
-    parser.add_argument("--num-minibatches", type=int, default=16,
+    parser.add_argument("--num-minibatches", type=int, default=8,
         help="the number of mini-batches")
     parser.add_argument("--update-epochs", type=int, default=8,
         help="the K epochs to update the policy")
@@ -94,7 +94,7 @@ def parse_args():
         help="the surrogate clipping coefficient")
     parser.add_argument("--clip-vloss", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Toggles whether or not to use a clipped loss for the value function, as per the paper.")
-    parser.add_argument("--ent-coef", type=float, default=0.01,
+    parser.add_argument("--ent-coef", type=float, default=0.005,
         help="coefficient of the entropy")
     parser.add_argument("--vf-coef", type=float, default=4,
         help="coefficient of the value function")
@@ -105,7 +105,7 @@ def parse_args():
     parser.add_argument("--threshold-kl", type=float, default=0.008,
         help="the target KL threshold for adaptative learning rate")
 
-    parser.add_argument("--reward-scaler", type=float, default=1,
+    parser.add_argument("--reward-scaler", type=float, default=1000,
         help="the scale factor applied to the reward during training")
     parser.add_argument("--record-video-step-frequency", type=int, default=20000,
         help="the frequency at which to record the videos")
@@ -132,8 +132,6 @@ class Agent(nn.Module):
             nn.Tanh(),
             layer_init(nn.Linear(512, 512)),
             nn.Tanh(),
-            layer_init(nn.Linear(512, 512)),
-            nn.Tanh(),
             layer_init(nn.Linear(512, 256)),
             nn.Tanh(),
             layer_init(nn.Linear(256, 1), std=1.0),
@@ -142,8 +140,6 @@ class Agent(nn.Module):
             layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 256)),
             nn.Tanh(),
             layer_init(nn.Linear(256, 512)),
-            nn.Tanh(),
-            layer_init(nn.Linear(512, 512)),
             nn.Tanh(),
             layer_init(nn.Linear(512, 512)),
             nn.Tanh(),

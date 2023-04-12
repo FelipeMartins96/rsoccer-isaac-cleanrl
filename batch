@@ -9,4 +9,4 @@ conda activate rlgpu
 cd /home/CIN/fbm2/rsoccer-isaac-cleanrl
 __GL_SHADER_DISK_CACHE_PATH=/tmp/fbm2/.nv/GLCache
 CUDA_CACHE_PATH=/tmp/fbm2/.nv/ComputeCache
-python ppo_continuous_action_isaacgym.py --track --capture-video --exp-name network-fixed-lr-horizonLen-entropy-noEnergy-noscaler-minibatch
+python ppo_continuous_action_isaacgym.py --track --capture-video --exp-name final
