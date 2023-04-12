@@ -48,7 +48,7 @@ from tqdm import tqdm
 def parse_args():
     # fmt: off
     parser = argparse.ArgumentParser()
-    parser.add_argument("--exp-name", type=str, default=os.path.basename(__file__).rstrip(".py"),
+    parser.add_argument("--exp-name", type=str,
         help="the name of this experiment")
     parser.add_argument("--seed", type=int, default=1,
         help="seed of the experiment")
@@ -168,21 +168,23 @@ class ExtractObsWrapper(gym.ObservationWrapper):
 
 
 if __name__ == "__main__":
+    save_path = "runs/"
     args = parse_args()
-    run_name = f"{args.env_id}__{args.exp_name}__{args.seed}__{int(time.time())}"
+    run_name = f"{args.exp_name}_ppo-{args.env_id}_{args.seed}"
     if args.track:
         import wandb
 
         wandb.init(
             project=args.wandb_project_name,
             entity=args.wandb_entity,
+            group=args.exp_name,
             sync_tensorboard=True,
             config=vars(args),
             name=run_name,
             monitor_gym=True,
             save_code=True,
         )
-    writer = SummaryWriter(f"runs/{run_name}")
+    writer = SummaryWriter(f"{save_path}/{run_name}")
     writer.add_text(
         "hyperparameters",
         "|param|value|\n|-|-|\n%s" % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
@@ -205,7 +207,7 @@ if __name__ == "__main__":
         print(f"record_video_step_frequency={args.record_video_step_frequency}")
         envs = gym.wrappers.RecordVideo(
             envs,
-            f"videos/{run_name}",
+            f"{save_path}/{run_name}",
             step_trigger=lambda step: step % args.record_video_step_frequency == 0,
             video_length=100,  # for each video record up to 100 steps
         )
@@ -360,5 +362,8 @@ if __name__ == "__main__":
         # print("SPS:", int(global_step / (time.time() - start_time)))
         writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
 
+    # Save Model
+    torch.save(agent.state_dict(), f"{save_path}/{run_name}/agent.pt")
+    wandb.save(f"{save_path}/{run_name}/{run_name}-agent.pt")
     # envs.close()
     writer.close()

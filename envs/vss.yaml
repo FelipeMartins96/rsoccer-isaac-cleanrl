@@ -1,6 +1,6 @@
 physics_engine: 'physx'
 env:
-  numEnvs: 4096
+  numEnvs: 4095
   numObservations: 52
   numActions: 2
   maxEpisodeLength: 400
