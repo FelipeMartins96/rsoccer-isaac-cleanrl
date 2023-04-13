@@ -261,8 +261,8 @@ if __name__ == "__main__":
                 for idx, d in enumerate(next_done):
                     if d:
                         for rw_key in info['r']:
-                            writer.add_scalar(f"charts/episodic_{rw_key}", info['r'][rw_key][idx].item(), global_step)
-                        writer.add_scalar("charts/episodic_length", info["l"][idx], global_step)
+                            writer.add_scalar(f"rws/episodic_{rw_key}", info['r'][rw_key][idx].item(), global_step)
+                        writer.add_scalar("rws/episodic_length", info["l"][idx], global_step)
                         break
 
         # bootstrap value if not done
@@ -352,7 +352,7 @@ if __name__ == "__main__":
                     break
 
         # TRY NOT TO MODIFY: record rewards for plotting purposes
-        writer.add_scalar("charts/learning_rate", optimizer.param_groups[0]["lr"], global_step)
+        writer.add_scalar("losses/learning_rate", optimizer.param_groups[0]["lr"], global_step)
         writer.add_scalar("losses/value_loss", v_loss.item(), global_step)
         writer.add_scalar("losses/policy_loss", pg_loss.item(), global_step)
         writer.add_scalar("losses/entropy", entropy_loss.item(), global_step)
@@ -360,7 +360,7 @@ if __name__ == "__main__":
         writer.add_scalar("losses/approx_kl", approx_kl.item(), global_step)
         writer.add_scalar("losses/clipfrac", np.mean(clipfracs), global_step)
         # print("SPS:", int(global_step / (time.time() - start_time)))
-        writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
+        writer.add_scalar("Charts/SPS", int(global_step / (time.time() - start_time)), global_step)
 
     # Save Model
     torch.save(agent.state_dict(), f"{save_path}/{run_name}/agent.pt")
