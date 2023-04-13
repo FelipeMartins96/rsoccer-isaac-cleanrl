@@ -1,6 +1,6 @@
 case $1 in
-1) python ppo_continuous_action_isaacgym.py --exp-name exp000 --env-id sa --seed 20 --track --capture-video;;
 0) python ppo_continuous_action_isaacgym.py --exp-name exp000 --env-id sa --seed 10 --track --capture-video;;
+1) python ppo_continuous_action_isaacgym.py --exp-name exp000 --env-id sa --seed 20 --track --capture-video;;
 2) python ppo_continuous_action_isaacgym.py --exp-name exp000 --env-id sa --seed 30 --track --capture-video;;
 3) python ppo_continuous_action_isaacgym.py --exp-name exp000 --env-id cma --seed 10 --track --capture-video;;
 4) python ppo_continuous_action_isaacgym.py --exp-name exp000 --env-id cma --seed 20 --track --capture-video;;
