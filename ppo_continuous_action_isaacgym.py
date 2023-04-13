@@ -363,7 +363,7 @@ if __name__ == "__main__":
         writer.add_scalar("Charts/SPS", int(global_step / (time.time() - start_time)), global_step)
 
     # Save Model
-    torch.save(agent.state_dict(), f"{save_path}/{run_name}/agent.pt")
+    torch.save(agent.state_dict(), f"{save_path}/{run_name}/{run_name}-agent.pt")
     wandb.save(f"{save_path}/{run_name}/{run_name}-agent.pt")
     # envs.close()
     writer.close()
