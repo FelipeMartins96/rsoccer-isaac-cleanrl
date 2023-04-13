@@ -168,7 +168,7 @@ class ExtractObsWrapper(gym.ObservationWrapper):
 
 
 if __name__ == "__main__":
-    save_path = "runs/"
+    save_path = "/home/CIN/fbm2/runs/"
     args = parse_args()
     run_name = f"{args.exp_name}_ppo-{args.env_id}_{args.seed}"
     if args.track:

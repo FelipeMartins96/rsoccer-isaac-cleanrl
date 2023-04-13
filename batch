@@ -2,7 +2,7 @@
 #SBATCH --job-name=rsoccer-isaac-training
 #SBATCH --ntasks=1
 #SBATCH --exclusive
-#SBATCH -p=all
+#SBATCH -p all
 #SBATCH --output=/home/CIN/fbm2/logs/slurm-%A_%a.out
 
 eval "$('/usr/local/anaconda3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
