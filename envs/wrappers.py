@@ -45,7 +45,7 @@ def make_env(args):
         'cma': CMA,
         'dma': DMA,
     }
-    return wrappers[args.env_id](envs)
+    return envs, wrappers[args.env_id](envs)
 
 class RecordEpisodeStatisticsTorch(gym.Wrapper):
     def __init__(self, env, device):
