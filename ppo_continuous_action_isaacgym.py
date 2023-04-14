@@ -394,7 +394,7 @@ if __name__ == "__main__":
         for seed in BASELINE_TEAMS[team]:
             print(f"Playing {team} {seed}")
             yellow_team = BASELINE_TEAMS[team][seed]
-            rews, lens = play_matches(unwrapped_env, blue_team, yellow_team, 15000, f"{save_path}/{run_name}/val_{team}_{seed}" if args.track else None)
+            rews, lens = play_matches(unwrapped_env, blue_team, yellow_team, 10000, f"{save_path}/{run_name}/val_{team}_{seed}" if args.track else None)
             team_score += rews
             team_len += lens
             total_score += rews
@@ -415,7 +415,7 @@ if __name__ == "__main__":
         new_config = vars(args)
         new_config["env_id"] = "sa-x3"
         run = wandb.init(
-            project='ppo-isaac-cleanrl',
+            project=args.wandb_project_name,
             monitor_gym=False,
             name=run_name,
             group=args.exp_name,
@@ -431,7 +431,7 @@ if __name__ == "__main__":
             for seed in BASELINE_TEAMS[team]:
                 print(f"Playing {team} {seed}")
                 yellow_team = BASELINE_TEAMS[team][seed]
-                rews, lens = play_matches(unwrapped_env, blue_team, yellow_team, 15000, f"{save_path}/{run_name}/val_{team}_{seed}" if args.track else None)
+                rews, lens = play_matches(unwrapped_env, blue_team, yellow_team, 10000, f"{save_path}/{run_name}/val_{team}_{seed}" if args.track else None)
                 team_score += rews
                 team_len += lens
                 total_score += rews
