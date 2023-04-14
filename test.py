@@ -22,7 +22,7 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    N_GAMES = 15000
+    N_GAMES = 10000
     SEED = args.seed
     NET_PATH = args.net_path
     RUN_ID = args.run_id
@@ -58,7 +58,6 @@ if __name__ == "__main__":
         resume=True,
     )
     new_config = dict(wandb.config)
-    wandb.finish()
 
     total_score = 0
     total_len = 0
