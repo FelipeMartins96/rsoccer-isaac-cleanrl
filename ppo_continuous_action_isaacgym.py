@@ -168,7 +168,7 @@ class ExtractObsWrapper(gym.ObservationWrapper):
 
 
 if __name__ == "__main__":
-    save_path = "/home/CIN/fbm2/runs/"
+    save_path = "/home/CIN/fbm2/runs"
     args = parse_args()
     run_name = f"{args.exp_name}_ppo-{args.env_id}_{args.seed}"
     if args.track:
@@ -342,10 +342,9 @@ if __name__ == "__main__":
             if args.adaptative_lr:
                 current_lr = optimizer.param_groups[0]["lr"]
                 if approx_kl > (2.0 * args.threshold_kl):
-                    lr = max(current_lr / 1.5, 1e-6)
-                if approx_kl < (0.5 * args.threshold_kl):
-                    lr = min(current_lr * 1.5,1e-2)
-                optimizer.param_groups[0]["lr"] = lr
+                    optimizer.param_groups[0]["lr"] = max(current_lr / 1.5, 1e-6)
+                elif approx_kl < (0.5 * args.threshold_kl):
+                    optimizer.param_groups[0]["lr"] = min(current_lr * 1.5,1e-2)
 
             if args.target_kl is not None:
                 if approx_kl > args.target_kl:
