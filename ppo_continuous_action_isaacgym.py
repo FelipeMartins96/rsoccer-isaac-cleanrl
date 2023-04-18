@@ -339,12 +339,12 @@ if __name__ == "__main__":
                 nn.utils.clip_grad_norm_(agent.parameters(), args.max_grad_norm)
                 optimizer.step()
 
-            if args.adaptative_lr:
-                current_lr = optimizer.param_groups[0]["lr"]
-                if approx_kl > (2.0 * args.threshold_kl):
-                    optimizer.param_groups[0]["lr"] = max(current_lr / 1.5, 1e-6)
-                elif approx_kl < (0.5 * args.threshold_kl):
-                    optimizer.param_groups[0]["lr"] = min(current_lr * 1.5,1e-2)
+                if args.adaptative_lr:
+                    current_lr = optimizer.param_groups[0]["lr"]
+                    if approx_kl > (2.0 * args.threshold_kl):
+                        optimizer.param_groups[0]["lr"] = max(current_lr / 1.5, 1e-6)
+                    elif approx_kl < (0.5 * args.threshold_kl):
+                        optimizer.param_groups[0]["lr"] = min(current_lr * 1.5,1e-2)
 
             if args.target_kl is not None:
                 if approx_kl > args.target_kl:
