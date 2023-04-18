@@ -137,7 +137,7 @@ def play_matches(envs, blue_team, yellow_team, n_matches, video_path=None):
             envs,
             video_path,
             step_trigger=lambda step: step == 0,
-            video_length=400,
+            video_length=300,
             name_prefix="video.000"
         )
     envs = ExtractObsWrapper(envs)
