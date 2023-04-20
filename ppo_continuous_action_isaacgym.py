@@ -78,7 +78,7 @@ def parse_args():
         help="the number of steps to run in each environment per policy rollout")
     parser.add_argument("--anneal-lr", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Toggle learning rate annealing for policy and value networks")
-    parser.add_argument("--adaptative-lr", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
+    parser.add_argument("--adaptative-lr", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Toggle adaptative learning rate for policy and value networks")
     parser.add_argument("--gamma", type=float, default=0.99,
         help="the discount factor gamma")
@@ -233,8 +233,10 @@ if __name__ == "__main__":
     actions = torch.zeros((args.num_steps, args.num_envs) + envs.single_action_space.shape, dtype=torch.float).to(device)
     logprobs = torch.zeros((args.num_steps, args.num_envs), dtype=torch.float).to(device)
     rewards = torch.zeros((args.num_steps, args.num_envs), dtype=torch.float).to(device)
-    dones = torch.zeros((args.num_steps, args.num_envs), dtype=torch.float).to(device)
+    next_dones = torch.zeros((args.num_steps, args.num_envs), dtype=torch.float).to(device)
+    next_timeouts = torch.zeros((args.num_steps, args.num_envs), dtype=torch.float).to(device)
     values = torch.zeros((args.num_steps, args.num_envs), dtype=torch.float).to(device)
+    next_values = torch.zeros((args.num_steps, args.num_envs), dtype=torch.float).to(device)
     advantages = torch.zeros_like(rewards, dtype=torch.float).to(device)
 
     # TRY NOT TO MODIFY: start the game
@@ -254,7 +256,6 @@ if __name__ == "__main__":
         for step in range(0, args.num_steps):
             global_step += 1 * args.num_envs
             obs[step] = next_obs
-            dones[step] = next_done
 
             # ALGO LOGIC: action logic
             with torch.no_grad():
@@ -265,6 +266,10 @@ if __name__ == "__main__":
 
             # TRY NOT TO MODIFY: execute the game and log data.
             next_obs, rewards[step], next_done, info = envs.step(action)
+            next_dones[step] = next_done
+            next_timeouts[step] = info["time_outs"]
+            with torch.no_grad():
+                next_values[step] = agent.get_value(info['terminal_observation']).reshape(1, -1)
             if 0 <= step <= 2:
                 for idx, d in enumerate(next_done):
                     if d:
@@ -275,18 +280,19 @@ if __name__ == "__main__":
 
         # bootstrap value if not done
         with torch.no_grad():
-            next_value = agent.get_value(next_obs).reshape(1, -1)
+            # next_value = agent.get_value(next_obs).reshape(1, -1)
             advantages = torch.zeros_like(rewards).to(device)
             lastgaelam = 0
+            next_non_terminal = 1.0 - next_dones.logical_and(next_timeouts.logical_not()).int()
             for t in reversed(range(args.num_steps)):
-                if t == args.num_steps - 1:
-                    nextnonterminal = 1.0 - next_done
-                    nextvalues = next_value
-                else:
-                    nextnonterminal = 1.0 - dones[t + 1]
-                    nextvalues = values[t + 1]
-                delta = rewards[t] + args.gamma * nextvalues * nextnonterminal - values[t]
-                advantages[t] = lastgaelam = delta + args.gamma * args.gae_lambda * nextnonterminal * lastgaelam
+                # if t == args.num_steps - 1:
+                #     nextnonterminal = 1.0 - next_done
+                #     nextvalues = next_value
+                # else:
+                #     nextnonterminal = 1.0 - dones[t + 1]
+                #     nextvalues = values[t + 1]
+                delta = rewards[t] + args.gamma * next_values[t] * next_non_terminal[t] - values[t]
+                advantages[t] = lastgaelam = delta + args.gamma * args.gae_lambda * (1.0 - next_dones[t]) * lastgaelam
             returns = advantages + values
 
         # flatten the batch
