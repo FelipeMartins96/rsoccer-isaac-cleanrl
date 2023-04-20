@@ -146,7 +146,7 @@ def play_matches(envs, blue_team, yellow_team, n_matches, video_path=None):
     rew_sum = 0
     len_sum = 0
     action_buf = torch.zeros(
-        (envs.cfg['env']['NumEnvs'],) + envs.action_space.shape, device=envs.device
+        (envs.cfg['env']['numEnvs'],) + envs.action_space.shape, device=envs.device
     )
     obs = envs.reset()
     while ep_count < n_matches:
