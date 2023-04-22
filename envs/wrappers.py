@@ -167,7 +167,7 @@ class DMA(gym.Wrapper):
         env_ids = dones.nonzero(as_tuple=False).squeeze(-1)
         if len(env_ids) > 0:
             self.action_buf[env_ids] *= 0
-        infos['terminal_observation'] = infos['terminal_observation'][:, 0, 0, :]
+        infos['terminal_observation'] = infos['terminal_observation'][:, 0, :, :].reshape(-1, self.env.num_obs)
         infos['progress_buffer'] = infos['progress_buffer'].unsqueeze(1).repeat_interleave(3)
         infos['time_outs'] = infos['time_outs'].unsqueeze(1).repeat_interleave(3)
         infos['rews'] = rewards[:, 0, :].reshape(-1, 4)
