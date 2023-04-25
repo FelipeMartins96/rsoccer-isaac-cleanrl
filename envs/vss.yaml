@@ -8,7 +8,7 @@ env:
   rew_weights:
     goal: 10
     grad: 2
-    move: 3
+    move: 0.0
     energy: 0.0
 sim:
   use_gpu_pipeline: True
