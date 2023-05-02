@@ -29,7 +29,7 @@ if __name__ == "__main__":
     ALGO = args.algo
 
     with initialize(config_path="envs"):
-        cfg = compose(config_name="vss")
+        cfg = compose(config_name="vss_goto")
     cfg = omegaconf_to_dict(cfg)
 
     cfg['env']['numEnvs'] = 9
@@ -43,6 +43,8 @@ if __name__ == "__main__":
         force_render=True,
     )
 
+    import pdb; pdb.set_trace()
+    
     actions = torch.zeros_like(envs.dof_velocity_buf)
     while True:
         envs.step(actions)

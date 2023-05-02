@@ -21,8 +21,8 @@ GREEN_COLOR = gymapi.Vec3(0.0, 1.0, 0.0)
 PINK_COLOR = gymapi.Vec3(1.0, 0.0, 1.0)
 TEAM_COLORS = [BLUE_COLOR, YELLOW_COLOR]
 ID_COLORS = [RED_COLOR, GREEN_COLOR, PINK_COLOR]
-NUM_TEAMS = 2
-NUM_ROBOTS = 3
+NUM_TEAMS = 1
+NUM_ROBOTS = 1
 
 
 class VSSGoTo(VecTask):
@@ -99,9 +99,10 @@ class VSSGoTo(VecTask):
     def _acquire_tensors(self):
         """Acquire and wrap tensors. Create views."""
         n_field_actors = 8  # 2 side walls, 4 end walls, 2 goal walls
-        num_actors = 7 + n_field_actors  # 7 = 1 ball and 6 robots
+        total_robots = NUM_ROBOTS * NUM_TEAMS
+        num_actors = 1 + total_robots + n_field_actors  # 7 = 1 ball and 6 robots
         self.s_ball = 0
-        self.s_robots = slice(1, 7)
+        self.s_robots = slice(1, total_robots+1)
 
         _root_state = self.gym.acquire_actor_root_state_tensor(self.sim)
 
@@ -203,17 +204,18 @@ class VSSGoTo(VecTask):
         self.compute_observations()
 
     def compute_observations(self):
-        self.obs_buf[:] = compute_obs(
-            self.ball_pos,
-            self.ball_vel,
-            self.robots_pos,
-            self.robots_vel,
-            self.robots_quats,
-            self.robots_ang_vel,
-            self.dof_velocity_buf,
-            self.permutations,
-            self.mirror_tensor,
-        )
+        # self.obs_buf[:] = compute_obs(
+        #     self.ball_pos,
+        #     self.ball_vel,
+        #     self.robots_pos,
+        #     self.robots_vel,
+        #     self.robots_quats,
+        #     self.robots_ang_vel,
+        #     self.dof_velocity_buf,
+        #     self.permutations,
+        #     self.mirror_tensor,
+        # )
+        pass
 
     def compute_rewards_and_dones(self):
         prev_ball_pos = self.ball_pos.clone()
@@ -312,7 +314,7 @@ class VSSGoTo(VecTask):
             )
             self.robots_quats[env_ids] = quat_from_angle_axis(
                 rand_angles, self.z_axis
-            ).view(-1, 2, 3, 4)
+            ).view(-1, NUM_TEAMS, NUM_ROBOTS, 4)
 
             # randomize ball velocities
             rand_ball_vel = (
@@ -359,8 +361,8 @@ class VSSGoTo(VecTask):
             _field = self.gym.create_env(self.sim, low_bound, high_bound, n_fields_row)
 
             self._add_ball(_field, field_idx)
-            for team in [BLUE_TEAM, YELLOW_TEAM]:
-                for robot in [RED_ROBOT, GREEN_ROBOT, PINK_ROBOT]:
+            for team in [BLUE_TEAM]:
+                for robot in [RED_ROBOT]:
                     self._add_robot(_field, field_idx, team, robot)
 
             self._add_field(_field, field_idx)
@@ -536,8 +538,8 @@ def compute_obs(b_pos, b_vel, r_pos, r_vel, r_quats, r_w, r_acts, perms, mirror_
         device="cuda:0",
         requires_grad=False,
     )
-    ball = torch.cat((b_pos, b_vel), dim=-1).repeat_interleave(3, 0).view(-1, 1, 3, 4)
-    angles = get_euler_xyz(r_quats.reshape(-1, 4))[2].view(-1, 2, 3, 1)
+    ball = torch.cat((b_pos, b_vel), dim=-1).repeat_interleave(3, 0).view(-1, 1, 1, 4)
+    angles = get_euler_xyz(r_quats.reshape(-1, 4))[2].view(-1, 1, 3, 1)
     robots = torch.cat(
         (
             r_pos,
