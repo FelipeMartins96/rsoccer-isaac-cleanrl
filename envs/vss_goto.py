@@ -1,4 +1,5 @@
 import os
+from typing import Tuple
 import torch
 import numpy as np
 from torch import Tensor
@@ -66,7 +67,8 @@ class VSSGoTo(VecTask):
         self._refresh_tensors()
         self.reset_dones()
         self.compute_observations()
-        self.target_geom = gymutil.WireframeSphereGeometry(0.04)
+        self.target_geom = gymutil.WireframeSphereGeometry(0.06)
+        self.min_target_dist = 0.06
 
     def _acquire_tensors(self):
         """Acquire and wrap tensors. Create views."""
@@ -177,62 +179,37 @@ class VSSGoTo(VecTask):
         pass
 
     def compute_rewards_and_dones(self):
-        return
-        prev_ball_pos = self.ball_pos.clone()
         prev_robots_pos = self.robots_pos.clone()
-
         self._refresh_tensors()
         self.rew_buf *= 0
-        # Goal Rewards
-        if self.w_goal > 0:
-            goal_rew = (
-                compute_goal_rew(
-                    self.reset_buf, self.ball_pos, self.field_width, self.goal_height
-                )
-                * self.w_goal
-            )
-            self.rew_buf[..., 0] = goal_rew
-        # Grad Rewards
-        if self.w_grad > 0:
-            grad_rew = (
-                compute_grad_rew(prev_ball_pos, self.ball_pos, self.yellow_goal)
-                * self.w_grad
-            )
-            self.rew_buf[..., 1] = grad_rew
+
         # Move Rewards
         if self.w_move > 0:
-            move_rew = (
-                compute_move_rew(
+            move_rew, target_dists = compute_goto_move_rew(
                     prev_robots_pos,
                     self.robots_pos,
-                    prev_ball_pos,
-                    self.ball_pos,
+                    self.targets
                 )
-                * self.w_move
-            )
-            self.rew_buf[..., 2] += move_rew
-        # Energy Reward (Penalization)
-        if self.w_energy > 0:
-            energy_rew = compute_energy_rew(self.dof_velocity_buf) * self.w_energy
-            self.rew_buf[..., 3] += energy_rew
+            move_rew *= self.w_move
+            self.rew_buf[:] += move_rew.squeeze()
 
         # Dones
-        self.reset_buf = compute_vss_dones(
-            ball_pos=self.ball_pos,
+        self.reset_buf[:] = compute_goto_dones(
             reset_buf=self.reset_buf,
             progress_buf=self.progress_buf,
+            target_dists=target_dists.squeeze(),
             max_episode_length=self.max_episode_length,
-            field_width=self.field_width,
-            goal_height=self.goal_height,
+            min_target_dist=self.min_target_dist,
         )
 
-    def reset_dones(self): 
+
+    def reset_dones(self):
+        # TODO: include random pos inside goal 
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
 
         if len(env_ids) > 0:
             # Reset env state
             self.root_state[env_ids] = self.env_reset_root_state
-
             close_ids = torch.arange(len(env_ids), device=self.device)
             rand_pos = torch.zeros(
                 (len(env_ids), 2, 2),  # 2 = 1 Robots + Target, 2 = X,Y
@@ -573,43 +550,33 @@ def compute_grad_rew(prev_ball_pos, ball_pos, yellow_goal):
 
 
 @torch.jit.script
-def compute_move_rew(p_robots, robots, p_ball, ball):
-    # type: (Tensor, Tensor, Tensor, Tensor) -> Tensor
-
+def compute_goto_move_rew(p_robots, robots, targets):
+    # type: (Tensor, Tensor, Tensor) -> Tuple[Tensor, Tensor]
     # Previous Distance
-    p_dist = torch.norm(p_robots.view(-1, 6, 2) - p_ball.unsqueeze(1), dim=-1)
+    p_dist = torch.norm(p_robots - targets, dim=-1)
 
     # Current Distance
-    dist = torch.norm(robots.view(-1, 6, 2) - ball.unsqueeze(1), dim=-1)
+    dist = torch.norm(robots - targets, dim=-1)
 
-    return (p_dist - dist).view(-1, 2, 3)
-
-
-@torch.jit.script
-def compute_energy_rew(actions):
-    # type: (Tensor) -> Tensor
-    return -torch.mean(torch.abs(actions), dim=-1)
-
+    return (p_dist - dist), dist
 
 @torch.jit.script
-def compute_vss_dones(
-    ball_pos,
+def compute_goto_dones(
     reset_buf,
     progress_buf,
+    target_dists,
     max_episode_length,
-    field_width,
-    goal_height,
+    min_target_dist,
 ):
-    # type: (Tensor, Tensor, Tensor, float, float, float) -> Tensor
+    # type: (Tensor, Tensor, Tensor, float, float) -> Tensor
 
-    # CHECK GOAL
-    is_goal = (torch.abs(ball_pos[:, 0]) > (field_width / 2)) & (
-        torch.abs(ball_pos[:, 1]) < (goal_height / 2)
-    )
+    # CHECK IF REACHED TARGET
+    target_reached = target_dists < min_target_dist
+    
     ones = torch.ones_like(reset_buf)
     reset = torch.zeros_like(reset_buf)
 
-    reset = torch.where(is_goal, ones, reset)
+    reset = torch.where(target_reached, ones, reset)
     reset = torch.where(progress_buf >= max_episode_length, ones, reset)
 
     return reset
