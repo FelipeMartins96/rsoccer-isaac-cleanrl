@@ -66,15 +66,15 @@ def parse_args():
         help="whether to capture videos of the agent performances (check out `videos` folder)")
 
     # Algorithm specific arguments
-    parser.add_argument("--env-id", type=str, default="sa",
+    parser.add_argument("--env-id", type=str, default="goto",
         help="the id of the environment")
-    parser.add_argument("--total-timesteps", type=int, default=1000000000,
+    parser.add_argument("--total-timesteps", type=int, default=500000000,
         help="total timesteps of the experiments")
     parser.add_argument("--learning-rate", type=float, default=0.001,
         help="the learning rate of the optimizer")
-    parser.add_argument("--num-envs", type=int, default=4095,
+    parser.add_argument("--num-envs", type=int, default=2048,
         help="the number of parallel game environments")
-    parser.add_argument("--num-steps", type=int, default=128,
+    parser.add_argument("--num-steps", type=int, default=64,
         help="the number of steps to run in each environment per policy rollout")
     parser.add_argument("--anneal-lr", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Toggle learning rate annealing for policy and value networks")
@@ -107,7 +107,7 @@ def parse_args():
 
     parser.add_argument("--reward-scaler", type=float, default=1000,
         help="the scale factor applied to the reward during training")
-    parser.add_argument("--record-video-step-frequency", type=int, default=20000,
+    parser.add_argument("--record-video-step-frequency", type=int, default=1000,
         help="the frequency at which to record the videos")
     parser.add_argument("--test", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Toggle test runs, save to test path.")
@@ -170,7 +170,7 @@ class ExtractObsWrapper(gym.ObservationWrapper):
 
 
 if __name__ == "__main__":
-    save_path = "/home/CIN/fbm2/runs"
+    save_path = "runs"
     args = parse_args()
     if args.test:
         save_path = "runs"
@@ -207,8 +207,15 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
 
     # env setup
-    from envs.wrappers import make_env, RecordEpisodeStatisticsTorch
-    unwrapped_env, envs = make_env(args)
+    if args.env_id != 'goto':
+        from envs.wrappers import make_env
+        from envs.wrappers import RecordEpisodeStatisticsTorchVSS as RecordEpisodeStatisticsTorch
+        unwrapped_env, envs = make_env(args)
+    else:
+        from envs.wrappers import make_env_goto
+        from envs.wrappers import RecordEpisodeStatisticsTorch
+        unwrapped_env = None
+        envs = make_env_goto(args)
 
     if args.capture_video:
         envs.is_vector_env = True
@@ -273,8 +280,11 @@ if __name__ == "__main__":
             if 0 <= step <= 2:
                 for idx, d in enumerate(next_done):
                     if d:
-                        for rw_key in info['r']:
-                            writer.add_scalar(f"rws/episodic_{rw_key}", info['r'][rw_key][idx].item(), global_step)
+                        if args.env_id != 'goto':
+                            for rw_key in info['r']:
+                                writer.add_scalar(f"rws/episodic_{rw_key}", info['r'][rw_key][idx].item(), global_step)
+                        else:
+                            writer.add_scalar("rws/episodic_reward", info["r"][idx], global_step)
                         writer.add_scalar("rws/episodic_length", info["l"][idx], global_step)
                         break
 
@@ -377,7 +387,7 @@ if __name__ == "__main__":
 
     # Save Model
     torch.save(agent.state_dict(), f"{save_path}/{run_name}/{run_name}-agent.pt")
-    if args.track:
+    if args.track and args.env_id != 'goto':
         with torch.no_grad():
             wandb.save(f"{save_path}/{run_name}/{run_name}-agent.pt")
             # envs.close()

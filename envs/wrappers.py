@@ -47,7 +47,28 @@ def make_env(args):
     }
     return envs, wrappers[args.env_id](envs)
 
-class RecordEpisodeStatisticsTorch(gym.Wrapper):
+def make_env_goto(args):
+    from hydra import compose, initialize
+    from isaacgymenvs.utils.reformat import omegaconf_to_dict
+    with initialize(config_path="."):
+        cfg = compose(config_name="vss_goto")
+    cfg = omegaconf_to_dict(cfg)
+    assert args.cuda
+    cfg['env']['numEnvs'] = args.num_envs
+    
+    from envs.vss_goto import VSSGoTo
+    envs = VSSGoTo(
+            cfg=cfg,
+            rl_device="cuda:0",
+            sim_device="cuda:0",
+            graphics_device_id=0,
+            headless=False if args.capture_video else True,
+            virtual_screen_capture=args.capture_video,
+            force_render=False,
+        )
+    return envs
+
+class RecordEpisodeStatisticsTorchVSS(gym.Wrapper):
     def __init__(self, env, device):
         super().__init__(env)
         self.num_envs = getattr(env, "num_envs", 1)
@@ -78,6 +99,39 @@ class RecordEpisodeStatisticsTorch(gym.Wrapper):
             'energy' : self.returned_episode_returns[:,3],
             'return' : self.returned_episode_returns.sum(1),
         }
+        infos["l"] = self.returned_episode_lengths
+        return (
+            observations,
+            rewards,
+            dones,
+            infos,
+        )
+
+class RecordEpisodeStatisticsTorch(gym.Wrapper):
+    def __init__(self, env, device):
+        super().__init__(env)
+        self.num_envs = getattr(env, "num_envs", 1)
+        self.device = device
+        self.episode_returns = None
+        self.episode_lengths = None
+
+    def reset(self, **kwargs):
+        observations = super().reset(**kwargs)
+        self.episode_returns = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+        self.episode_lengths = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
+        self.returned_episode_returns = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+        self.returned_episode_lengths = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
+        return observations
+
+    def step(self, action):
+        observations, rewards, dones, infos = super().step(action)
+        self.episode_returns += rewards
+        self.episode_lengths += 1
+        self.returned_episode_returns[:] = self.episode_returns
+        self.returned_episode_lengths[:] = self.episode_lengths
+        self.episode_returns *= 1 - dones
+        self.episode_lengths *= 1 - dones
+        infos["r"] = self.returned_episode_returns
         infos["l"] = self.returned_episode_lengths
         return (
             observations,

@@ -95,7 +95,7 @@ class VSSGoTo(VecTask):
         for i in range(50):
             self.gym.simulate(self.sim)
         self._refresh_tensors()
-        self.env_reset_root_state = self.root_state.mean(1).clone()
+        self.env_reset_root_state = self.root_state.mean(0).clone()
 
         self.dof_velocity_buf = torch.zeros(
             (self.num_envs, total_robots, 2),
@@ -136,7 +136,7 @@ class VSSGoTo(VecTask):
         # reset progress_buf for envs reseted on previous step
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
         self.progress_buf[env_ids] = 0
-        self.dof_velocity_buf[:] = _actions.to(self.device)
+        self.dof_velocity_buf[:] = _actions.to(self.device).unsqueeze(1)
 
         act = self.dof_velocity_buf * self.robot_max_wheel_rad_s
         self.gym.set_dof_velocity_target_tensor(self.sim, gymtorch.unwrap_tensor(act))
