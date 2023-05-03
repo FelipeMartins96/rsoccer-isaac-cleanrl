@@ -70,9 +70,9 @@ class VSSGoTo(VecTask):
         """Acquire and wrap tensors. Create views."""
         n_field_actors = 8  # 2 side walls, 4 end walls, 2 goal walls
         total_robots = NUM_ROBOTS * NUM_TEAMS
-        num_actors = 1 + total_robots + n_field_actors  # 7 = 1 ball and 6 robots
+        num_actors = total_robots + n_field_actors
         self.s_ball = 0
-        self.s_robots = slice(1, total_robots+1)
+        self.s_robots = slice(0, total_robots)
 
         _root_state = self.gym.acquire_actor_root_state_tensor(self.sim)
 
@@ -308,7 +308,7 @@ class VSSGoTo(VecTask):
         for field_idx in range(self.num_envs):
             _field = self.gym.create_env(self.sim, low_bound, high_bound, n_fields_row)
 
-            self._add_ball(_field, field_idx)
+            # self._add_ball(_field, field_idx)
             for team in [BLUE_TEAM]:
                 for robot in [RED_ROBOT]:
                     self._add_robot(_field, field_idx, team, robot)
