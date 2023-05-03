@@ -68,7 +68,7 @@ def parse_args():
     # Algorithm specific arguments
     parser.add_argument("--env-id", type=str, default="goto",
         help="the id of the environment")
-    parser.add_argument("--total-timesteps", type=int, default=500000000,
+    parser.add_argument("--total-timesteps", type=int, default=100000000,
         help="total timesteps of the experiments")
     parser.add_argument("--learning-rate", type=float, default=0.001,
         help="the learning rate of the optimizer")
@@ -107,7 +107,7 @@ def parse_args():
 
     parser.add_argument("--reward-scaler", type=float, default=1000,
         help="the scale factor applied to the reward during training")
-    parser.add_argument("--record-video-step-frequency", type=int, default=1000,
+    parser.add_argument("--record-video-step-frequency", type=int, default=3000,
         help="the frequency at which to record the videos")
     parser.add_argument("--test", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Toggle test runs, save to test path.")

@@ -239,17 +239,16 @@ class VSSGoTo(VecTask):
             self.robots_quats[env_ids] = quat_from_angle_axis(
                 rand_angles, self.z_axis
             )
-
-            # # randomize ball velocities
-            # rand_ball_vel = (
-            #     torch.rand(
-            #         (len(env_ids), 2),
-            #         dtype=torch.float,
-            #         device=self.device,
-            #         requires_grad=False,
-            #     )
-            #     - 0.5
-            # ) * 1
+            # randomize rotations
+            rand_angles = torch_rand_float(
+                -np.pi,
+                np.pi,
+                (len(env_ids), NUM_TEAMS * NUM_ROBOTS),
+                device=self.device,
+            )
+            self.tgts_quats[env_ids] = quat_from_angle_axis(
+                rand_angles, self.z_axis
+            )
 
             self.gym.set_actor_root_state_tensor(
                 self.sim, gymtorch.unwrap_tensor(self.root_state)
