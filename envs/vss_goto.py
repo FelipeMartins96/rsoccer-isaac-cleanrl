@@ -90,11 +90,12 @@ class VSSGoTo(VecTask):
         self.robots_quats = self.root_quats[:, self.s_robots, :]
         self.root_vel = self.root_state[..., 7:9]
         self.robots_vel = self.root_vel[:, self.s_robots, :]
-        self.root_ang_vel = self.root_state[..., 12]
+        self.root_ang_vel = self.root_state[..., 12:13]
         self.robots_ang_vel = self.root_ang_vel[:, self.s_robots]
-
+        for i in range(50):
+            self.gym.simulate(self.sim)
         self._refresh_tensors()
-        self.env_reset_root_state = self.root_state[0].clone()
+        self.env_reset_root_state = self.root_state.mean(1).clone()
 
         self.dof_velocity_buf = torch.zeros(
             (self.num_envs, total_robots, 2),
@@ -164,19 +165,14 @@ class VSSGoTo(VecTask):
         self.compute_observations()
 
     def compute_observations(self):
-        # TODO
-        # self.obs_buf[:] = compute_obs(
-        #     self.ball_pos,
-        #     self.ball_vel,
-        #     self.robots_pos,
-        #     self.robots_vel,
-        #     self.robots_quats,
-        #     self.robots_ang_vel,
-        #     self.dof_velocity_buf,
-        #     self.permutations,
-        #     self.mirror_tensor,
-        # )
-        pass
+        self.obs_buf[:] = compute_obs(
+            self.targets,
+            self.robots_pos,
+            self.robots_vel,
+            self.robots_quats,
+            self.robots_ang_vel,
+            self.dof_velocity_buf
+        )
 
     def compute_rewards_and_dones(self):
         prev_robots_pos = self.robots_pos.clone()
@@ -465,51 +461,20 @@ class VSSGoTo(VecTask):
 
 
 @torch.jit.script
-def compute_obs(b_pos, b_vel, r_pos, r_vel, r_quats, r_w, r_acts, perms, mirror_tensor):
-    # type: (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor) -> Tensor
-    mirror_tensor = torch.tensor(
-        [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0],
-        dtype=torch.float,
-        device="cuda:0",
-        requires_grad=False,
-    )
-    ball = torch.cat((b_pos, b_vel), dim=-1).repeat_interleave(3, 0).view(-1, 1, 1, 4)
-    angles = get_euler_xyz(r_quats.reshape(-1, 4))[2].view(-1, 1, 3, 1)
-    robots = torch.cat(
+def compute_obs(tgt_pos, r_pos, r_vel, r_quats, r_w, r_acts):
+    # type: (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor) -> Tensor
+    angles = get_euler_xyz(r_quats.squeeze())[2].view(-1, 1, 1)
+    return torch.cat(
         (
+            tgt_pos,
             r_pos,
             r_vel,
             torch.cos(angles),
             torch.sin(angles),
             r_w,
-            r_acts,
-        ),
-        dim=-1,
-    )
-    obs = torch.cat(
-        (
-            ball,
-            robots[:, 0, perms].view(-1, 1, 3, 27),
-            robots[:, 1, :, :-2].repeat_interleave(3, 0).view(-1, 1, 3, 21),
-        ),
-        -1,
-    )
-    robots *= mirror_tensor
-    obs = torch.cat(
-        (
-            obs,
-            torch.cat(
-                (
-                    -ball,
-                    robots[:, 1, perms].view(-1, 1, 3, 27),
-                    robots[:, 0, :, :-2].repeat_interleave(3, 0).view(-1, 1, 3, 21),
-                ),
-                -1,
-            ),
-        ),
-        1,
-    )
-    return obs
+            r_acts
+        ), dim=-1
+    ).squeeze()
 
 
 @torch.jit.script
