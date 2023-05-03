@@ -43,8 +43,7 @@ if __name__ == "__main__":
         force_render=True,
     )
 
-    import pdb; pdb.set_trace()
     
-    actions = torch.ones_like(envs.dof_velocity_buf)
+    actions = torch.ones_like(envs.dof_velocity_buf).squeeze()
     while True:
         envs.step(actions)

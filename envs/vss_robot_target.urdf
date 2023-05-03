@@ -1,0 +1,36 @@
+<robot name="target">
+    <link name="body">
+        <collision>
+            <geometry>
+                <sphere radius="0.001"/>
+            </geometry>
+        </collision>
+    </link>
+
+    <link name="tagId">
+        <visual>
+            <geometry>
+                <box size="0.03 0.05 0.002"/>
+            </geometry>
+        </visual>
+    </link>
+    <link name="tagTeam">
+        <visual>
+            <geometry>
+                <box size="0.03 0.05 0.002"/>
+            </geometry>
+        </visual>
+    </link>
+
+    <joint name="body_tagId" type="fixed">
+        <origin xyz="0.0175 0.0 1.0"/>
+        <parent link="body" />
+        <child link="tagId" />
+    </joint>
+    <joint name="body_tagTeam" type="fixed">
+        <origin xyz="-0.0175 0.0 1.0"/>
+        <parent link="body" />
+        <child link="tagTeam" />
+    </joint>
+
+</robot>

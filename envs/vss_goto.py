@@ -74,8 +74,9 @@ class VSSGoTo(VecTask):
         """Acquire and wrap tensors. Create views."""
         n_field_actors = 8  # 2 side walls, 4 end walls, 2 goal walls
         total_robots = NUM_ROBOTS * NUM_TEAMS
-        num_actors = total_robots + n_field_actors
+        num_actors = total_robots * 2 + n_field_actors
         self.s_robots = slice(0, total_robots)
+        self.s_tgts = slice(total_robots, total_robots+total_robots)
 
         _root_state = self.gym.acquire_actor_root_state_tensor(self.sim)
 
@@ -85,9 +86,11 @@ class VSSGoTo(VecTask):
 
         self.root_pos = self.root_state[..., 0:2]
         self.robots_pos = self.root_pos[:, self.s_robots, :]
+        self.tgts_pos = self.root_pos[:, self.s_tgts, :]
 
         self.root_quats = self.root_state[..., 3:7]
         self.robots_quats = self.root_quats[:, self.s_robots, :]
+        self.tgts_quats = self.root_quats[:, self.s_tgts, :]
         self.root_vel = self.root_state[..., 7:9]
         self.robots_vel = self.root_vel[:, self.s_robots, :]
         self.root_ang_vel = self.root_state[..., 12:13]
@@ -127,7 +130,6 @@ class VSSGoTo(VecTask):
         self.entities_pairs = torch.tensor(
             list(combinations(entities_ids, 2)), device=self.device, requires_grad=False
         )
-        self.targets = torch.zeros_like(self.robots_pos)
 
     #####################################################################
     ###==============================step=============================###
@@ -141,15 +143,6 @@ class VSSGoTo(VecTask):
         act = self.dof_velocity_buf * self.robot_max_wheel_rad_s
         self.gym.set_dof_velocity_target_tensor(self.sim, gymtorch.unwrap_tensor(act))
 
-        self.gym.clear_lines(self.viewer)
-        for idx, _env in enumerate(self.envs):
-            gymutil.draw_lines(
-                self.target_geom, 
-                self.gym, 
-                self.viewer, 
-                _env, 
-                gymapi.Transform(p=gymapi.Vec3(self.targets[idx,0,0], self.targets[idx,0,1], 0.0))
-            )
 
     def post_physics_step(self):
         self.progress_buf += 1
@@ -166,7 +159,7 @@ class VSSGoTo(VecTask):
 
     def compute_observations(self):
         self.obs_buf[:] = compute_obs(
-            self.targets,
+            self.tgts_pos,
             self.robots_pos,
             self.robots_vel,
             self.robots_quats,
@@ -184,7 +177,7 @@ class VSSGoTo(VecTask):
             move_rew, target_dists = compute_goto_move_rew(
                     prev_robots_pos,
                     self.robots_pos,
-                    self.targets
+                    self.tgts_pos,
                 )
             move_rew *= self.w_move
             self.rew_buf[:] += move_rew.squeeze()
@@ -234,7 +227,7 @@ class VSSGoTo(VecTask):
                 close_ids = too_close.nonzero(as_tuple=False).squeeze(-1)
 
             self.robots_pos[env_ids] = rand_pos[:, self.s_robots]
-            self.targets[env_ids] = rand_pos[:, 1:]
+            self.tgts_pos[env_ids] = rand_pos[:, self.s_tgts]
 
             # randomize rotations
             rand_angles = torch_rand_float(
@@ -295,8 +288,13 @@ class VSSGoTo(VecTask):
                 for robot in [RED_ROBOT]:
                     self._add_robot(_field, field_idx, team, robot)
 
+            for team in [BLUE_TEAM]:
+                for robot in [RED_ROBOT]:
+                    self._add_target(_field, field_idx, team, robot)
+
             self._add_field(_field, field_idx)
             self.envs.append(_field)
+
 
     def _add_ground(self):
         pp = gymapi.PlaneParams()
@@ -321,6 +319,38 @@ class VSSGoTo(VecTask):
         )
         self.gym.set_rigid_body_color(field, ball, 0, gymapi.MESH_VISUAL, ORANGE_COLOR)
 
+    def _add_target(self, env, field_id, team, idx):
+        options = gymapi.AssetOptions()
+        options.fix_base_link = True
+        root = os.path.dirname(os.path.abspath(__file__))
+        tgt_asset = self.gym.load_asset(
+            sim=self.sim,
+            rootpath=root,
+            filename='vss_robot_target.urdf',
+            options=options,
+        )
+        body, tag_id, tag_team = 0, 1, 2
+        wheel_radius = 0.024  # _z dimension
+        pos_idx = idx + 1 if team == YELLOW_TEAM else -(idx + 1)
+        pose = gymapi.Transform(p=gymapi.Vec3(0.1 * pos_idx, 0.0, -1.0))
+        robot = self.gym.create_actor(
+            env=env,
+            asset=tgt_asset,
+            pose=pose,
+            group=-1,
+            filter=0b111,
+            name='target',
+        )
+        self.gym.set_rigid_body_color(
+            env, robot, tag_id, gymapi.MESH_VISUAL, TEAM_COLORS[team]
+        )
+        self.gym.set_rigid_body_color(
+            env, robot, tag_team, gymapi.MESH_VISUAL, ID_COLORS[idx]
+        )
+        props = self.gym.get_actor_rigid_shape_properties(env, robot)
+        props[body].filter = 0b1111
+        self.gym.set_actor_rigid_shape_properties(env, robot, props)
+
     def _add_robot(self, env, field_id, team, idx):
         options = gymapi.AssetOptions()
         root = os.path.dirname(os.path.abspath(__file__))
@@ -333,13 +363,13 @@ class VSSGoTo(VecTask):
         body, left_wheel, right_wheel, tag_id, tag_team = 0, 1, 2, 3, 4
         wheel_radius = 0.024  # _z dimension
         pos_idx = idx + 1 if team == YELLOW_TEAM else -(idx + 1)
-        pose = gymapi.Transform(p=gymapi.Vec3(0.1 * pos_idx, 0.0, wheel_radius))
+        pose = gymapi.Transform(p=gymapi.Vec3(0.1 * pos_idx, 0.0, wheel_radius+0.005))
         robot = self.gym.create_actor(
             env=env,
             asset=rbt_asset,
             pose=pose,
             group=field_id,
-            filter=0b00,
+            filter=0b01,
             name='robot',
         )
         self.gym.set_rigid_body_color(
