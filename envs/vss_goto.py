@@ -39,7 +39,6 @@ class VSSGoTo(VecTask):
         virtual_screen_capture,
         force_render,
     ):
-        self.num_fields = cfg['env']['numEnvs']
         self.max_episode_length = cfg['env']['maxEpisodeLength']
         self.w_goal = cfg['env']['rew_weights']['goal']
         self.w_grad = cfg['env']['rew_weights']['grad']
@@ -57,11 +56,6 @@ class VSSGoTo(VecTask):
             virtual_screen_capture=virtual_screen_capture,
             force_render=force_render,
         )
-        self.obs_space = Box(-np.inf, np.inf, (NUM_TEAMS, NUM_ROBOTS, self.num_obs))
-        self.state_space = Box(
-            -np.inf, np.inf, (NUM_TEAMS, NUM_ROBOTS, self.num_states)
-        )
-        self.act_space = Box(-1, 1, (NUM_TEAMS, NUM_ROBOTS, self.num_actions))
         if self.viewer != None:
             cam_pos = gymapi.Vec3(1.7, 1.09, 4.6)
             cam_target = gymapi.Vec3(1.7, 1.1, 0.0)
@@ -71,30 +65,6 @@ class VSSGoTo(VecTask):
         self._refresh_tensors()
         self.reset_dones()
         self.compute_observations()
-
-    def allocate_buffers(self):
-        # allocate buffers
-        num_fields = self.num_fields
-        num_obs = self.num_obs
-        device = self.device
-        self.obs_buf = torch.zeros(
-            (num_fields, NUM_TEAMS, NUM_ROBOTS, num_obs),
-            device=device,
-            dtype=torch.float,
-        )
-        self.states_buf = torch.zeros(
-            (num_fields, NUM_TEAMS, NUM_ROBOTS, num_obs),
-            device=device,
-            dtype=torch.float,
-        )
-        self.rew_buf = torch.zeros(
-            (num_fields, NUM_TEAMS, NUM_ROBOTS, 4), device=device, dtype=torch.float
-        )
-        self.reset_buf = torch.ones(num_fields, device=device, dtype=torch.long)
-        self.timeout_buf = torch.zeros(num_fields, device=device, dtype=torch.long)
-        self.progress_buf = torch.zeros(num_fields, device=device, dtype=torch.long)
-        self.randomize_buf = torch.zeros(num_fields, device=device, dtype=torch.long)
-        self.extras = {}
 
     def _acquire_tensors(self):
         """Acquire and wrap tensors. Create views."""
@@ -111,32 +81,22 @@ class VSSGoTo(VecTask):
         )
 
         self.root_pos = self.root_state[..., 0:2]
-        self.robots_pos = self.root_pos[:, self.s_robots, :].view(
-            -1, NUM_TEAMS, NUM_ROBOTS, 2
-        )
+        self.robots_pos = self.root_pos[:, self.s_robots, :]
         self.ball_pos = self.root_pos[:, self.s_ball, :]
 
         self.root_quats = self.root_state[..., 3:7]
-        self.robots_quats = self.root_quats[:, self.s_robots, :].view(
-            -1, NUM_TEAMS, NUM_ROBOTS, 4
-        )
-
+        self.robots_quats = self.root_quats[:, self.s_robots, :]
         self.root_vel = self.root_state[..., 7:9]
-        self.robots_vel = self.root_vel[:, self.s_robots, :].view(
-            -1, NUM_TEAMS, NUM_ROBOTS, 2
-        )
+        self.robots_vel = self.root_vel[:, self.s_robots, :]
         self.ball_vel = self.root_vel[:, self.s_ball, :]
-
         self.root_ang_vel = self.root_state[..., 12]
-        self.robots_ang_vel = self.root_ang_vel[:, self.s_robots].view(
-            -1, NUM_TEAMS, NUM_ROBOTS, 1
-        )
+        self.robots_ang_vel = self.root_ang_vel[:, self.s_robots]
 
         self._refresh_tensors()
         self.env_reset_root_state = self.root_state[0].clone()
 
         self.dof_velocity_buf = torch.zeros(
-            (self.num_fields, NUM_TEAMS, NUM_ROBOTS, 2),
+            (self.num_envs, total_robots, 2),
             device=self.device,
             requires_grad=False,
         )
@@ -160,19 +120,6 @@ class VSSGoTo(VecTask):
         )
         self.z_axis = torch.tensor(
             [0.0, 0.0, 1.0], dtype=torch.float, device=self.device, requires_grad=False
-        )
-        entities_ids = list(range(7))  # 7 = 6 Robots + 1 Ball
-        self.entities_pairs = torch.tensor(
-            list(combinations(entities_ids, 2)), device=self.device, requires_grad=False
-        )
-        self.mirror_tensor = torch.tensor(
-            [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0],
-            dtype=torch.float,
-            device=self.device,
-            requires_grad=False,
-        )
-        self.permutations = torch.tensor(
-            [[0, 1, 2], [1, 2, 0], [2, 0, 1]], device=self.device, requires_grad=False
         )
 
     #####################################################################
@@ -267,6 +214,7 @@ class VSSGoTo(VecTask):
         )
 
     def reset_dones(self):
+        return
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
 
         if len(env_ids) > 0:
@@ -347,7 +295,7 @@ class VSSGoTo(VecTask):
         self.walls_depth = 0.1  # on rules its 0.05
         low_bound = -gymapi.Vec3(self.env_total_width, self.env_total_height, 0.0) / 2
         high_bound = gymapi.Vec3(self.env_total_width, self.env_total_height, 2.0) / 2
-        n_fields_row = int(np.sqrt(self.num_fields))
+        n_fields_row = int(np.sqrt(self.num_envs))
 
         self.sim = super().create_sim(
             self.device_id,
@@ -357,7 +305,7 @@ class VSSGoTo(VecTask):
         )
 
         self._add_ground()
-        for field_idx in range(self.num_fields):
+        for field_idx in range(self.num_envs):
             _field = self.gym.create_env(self.sim, low_bound, high_bound, n_fields_row)
 
             self._add_ball(_field, field_idx)
