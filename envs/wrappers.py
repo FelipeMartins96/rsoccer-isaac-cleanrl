@@ -55,6 +55,14 @@ def make_env_goto(args):
     cfg = omegaconf_to_dict(cfg)
     assert args.cuda
     cfg['env']['numEnvs'] = args.num_envs
+
+    if not args.terminal_rw:
+        cfg['env']['rew_weights']['terminal'] = 0.0
+    if not args.check_angle:
+        cfg['env']['thresholds']['angle'] = 5
+    if not args.check_speed:
+        cfg['env']['thresholds']['speed'] = 5
+
     
     from envs.vss_goto import VSSGoTo
     envs = VSSGoTo(

@@ -76,7 +76,7 @@ def parse_args():
         help="the number of parallel game environments")
     parser.add_argument("--num-steps", type=int, default=64,
         help="the number of steps to run in each environment per policy rollout")
-    parser.add_argument("--anneal-lr", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
+    parser.add_argument("--anneal-lr", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
         help="Toggle learning rate annealing for policy and value networks")
     parser.add_argument("--adaptative-lr", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Toggle adaptative learning rate for policy and value networks")
@@ -111,6 +111,11 @@ def parse_args():
         help="the frequency at which to record the videos")
     parser.add_argument("--test", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Toggle test runs, save to test path.")
+    
+    parser.add_argument("--terminal-rw", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
+    parser.add_argument("--check-angle", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
+    parser.add_argument("--check-speed", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
+    
     args = parser.parse_args()
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
@@ -178,7 +183,7 @@ if __name__ == "__main__":
         args.track = True
         args.capture_video = False
         args.total_timesteps = 1000000
-    run_name = f"{args.exp_name}_ppo-{args.env_id}_{args.seed}"
+    run_name = f"{args.exp_name}_ppo-{args.env_id}"
     if args.track:
         import wandb
 
@@ -192,7 +197,7 @@ if __name__ == "__main__":
             monitor_gym=True,
             save_code=True,
         )
-    writer = SummaryWriter(f"{save_path}/{run_name}")
+    writer = SummaryWriter(f"{save_path}/{run_name}/{args.seed}")
     writer.add_text(
         "hyperparameters",
         "|param|value|\n|-|-|\n%s" % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
@@ -222,7 +227,7 @@ if __name__ == "__main__":
         print(f"record_video_step_frequency={args.record_video_step_frequency}")
         envs = gym.wrappers.RecordVideo(
             envs,
-            f"{save_path}/{run_name}",
+            f"{save_path}/{run_name}/{args.seed}",
             step_trigger=lambda step: step % args.record_video_step_frequency == 0,
             video_length=100,  # for each video record up to 100 steps
         )
@@ -285,6 +290,8 @@ if __name__ == "__main__":
                                 writer.add_scalar(f"rws/episodic_{rw_key}", info['r'][rw_key][idx].item(), global_step)
                         else:
                             writer.add_scalar("rws/episodic_reward", info["r"][idx], global_step)
+                            for rw_key in info['log']:
+                                writer.add_scalar(f"error/{rw_key}", info['log'][rw_key][idx].item(), global_step)
                         writer.add_scalar("rws/episodic_length", info["l"][idx], global_step)
                         break
 
@@ -386,10 +393,11 @@ if __name__ == "__main__":
         writer.add_scalar("Charts/SPS", int(global_step / (time.time() - start_time)), global_step)
 
     # Save Model
-    torch.save(agent.state_dict(), f"{save_path}/{run_name}/{run_name}-agent.pt")
+    torch.save(agent.state_dict(), f"{save_path}/{run_name}/{args.seed}-agent.pt")
+    if args.track:
+        wandb.save(f"{save_path}/{run_name}/{args.seed}-agent.pt")
     if args.track and args.env_id != 'goto':
         with torch.no_grad():
-            wandb.save(f"{save_path}/{run_name}/{run_name}-agent.pt")
             # envs.close()
             writer.close()
             wandb_id = wandb.run.id

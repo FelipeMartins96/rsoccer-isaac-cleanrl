@@ -5,8 +5,9 @@ import numpy as np
 from torch import Tensor
 from gym.spaces import Box
 from isaacgym import gymapi, gymtorch, gymutil
-from isaacgym.torch_utils import torch_rand_float, quat_from_angle_axis, get_euler_xyz, quat_diff_rad
+from isaacgym.torch_utils import torch_rand_float, quat_from_angle_axis, get_euler_xyz
 from isaacgymenvs.tasks.base.vec_task import VecTask
+from isaacgymenvs.utils.torch_jit_utils import quat_diff_rad
 from itertools import combinations
 
 BLUE_TEAM = 0
@@ -175,10 +176,16 @@ class VSSGoTo(VecTask):
         self._refresh_tensors()
 
         tgt_dist = calculate_distance(self.tgts_pos, self.robots_pos)
-        angle_diff = quat_diff_rad(self.tgts_quats, self.robots_quats)
-        robot_speed = self.robots_vel.norm(dim=-1)
-        
+        angle_diff = calculate_angle_diff(self.tgts_quats, self.robots_quats)
+        robot_speed = self.robots_vel.norm(dim=-1).squeeze()
+
+        self.extras["log"] = {
+            "angle_diff": angle_diff.clone().to(self.rl_device),
+            "robot_speed": robot_speed.clone().to(self.rl_device),
+        }
+
         terminal = check_terminal_state(
+            self.reset_buf,
             tgt_dist,
             angle_diff,
             robot_speed,
@@ -187,7 +194,7 @@ class VSSGoTo(VecTask):
             self.speed_threshold,
         )
 
-        self.reset_buf[:] =compute_goto_dones(
+        self.reset_buf[:] = compute_goto_dones(
             terminal,
             self.progress_buf,
             self.max_episode_length,
@@ -518,7 +525,38 @@ def compute_obs(tgt_pos, tgt_quats, r_pos, r_vel, r_quats, r_w, r_acts):
     ).squeeze()
 
 @torch.jit.script
-def calculate_min_angle_diff(angle_1, angle_2):
+def calculate_distance(pos0, pos1):
+    # type: (Tensor, Tensor) -> Tensor
+    return torch.norm(pos0 - pos1, dim=-1).squeeze()
+
+@torch.jit.script
+def calculate_angle_diff(quat0, quat1):
+    # type: (Tensor, Tensor) -> Tensor
+    rad_diff = quat_diff_rad(quat0.squeeze(), quat1.squeeze())
+    return torch.where(
+            rad_diff > (torch.pi/2),
+            torch.pi - rad_diff,
+            rad_diff
+        )
+        
+@torch.jit.script
+def check_terminal_state(
+    reset_buf,
+    tgt_dist,
+    angle_diff,
+    robot_speed,
+    dist_threshold,
+    angle_threshold,
+    speed_threshold
+):
+    # type: (Tensor, Tensor, Tensor, Tensor, float, float, float) -> Tensor
+    return torch.where(
+            (tgt_dist < dist_threshold)
+            & (angle_diff < angle_threshold)
+            & (robot_speed < speed_threshold),
+            torch.ones_like(reset_buf),
+            torch.zeros_like(reset_buf),
+        )
 
 @torch.jit.script
 def compute_goto_move_rew(p_robots, robots, targets):
@@ -533,21 +571,15 @@ def compute_goto_move_rew(p_robots, robots, targets):
 
 @torch.jit.script
 def compute_goto_dones(
-    reset_buf,
+    terminal,
     progress_buf,
-    target_dists,
-    max_episode_length,
-    min_target_dist,
+    max_episode_length
 ):
-    # type: (Tensor, Tensor, Tensor, float, float) -> Tensor
+    # type: (Tensor, Tensor, float) -> Tensor
 
-    # CHECK IF REACHED TARGET
-    target_reached = target_dists < min_target_dist
-    
-    ones = torch.ones_like(reset_buf)
-    reset = torch.zeros_like(reset_buf)
 
-    reset = torch.where(target_reached, ones, reset)
-    reset = torch.where(progress_buf >= max_episode_length, ones, reset)
-
-    return reset
+    return torch.where(
+        progress_buf >= max_episode_length,
+        torch.ones_like(terminal),
+        terminal
+        )
