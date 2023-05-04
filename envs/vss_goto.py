@@ -5,7 +5,7 @@ import numpy as np
 from torch import Tensor
 from gym.spaces import Box
 from isaacgym import gymapi, gymtorch, gymutil
-from isaacgym.torch_utils import torch_rand_float, quat_from_angle_axis, get_euler_xyz
+from isaacgym.torch_utils import torch_rand_float, quat_from_angle_axis, get_euler_xyz, quat_diff_rad
 from isaacgymenvs.tasks.base.vec_task import VecTask
 from itertools import combinations
 
@@ -41,10 +41,11 @@ class VSSGoTo(VecTask):
         force_render,
     ):
         self.max_episode_length = cfg['env']['maxEpisodeLength']
-        self.w_goal = cfg['env']['rew_weights']['goal']
-        self.w_grad = cfg['env']['rew_weights']['grad']
+        self.w_terminal = cfg['env']['rew_weights']['terminal']
         self.w_move = cfg['env']['rew_weights']['move']
-        self.w_energy = cfg['env']['rew_weights']['energy']
+        self.dist_threshold = cfg['env']['thresholds']['dist']
+        self.angle_threshold = cfg['env']['thresholds']['angle']
+        self.speed_threshold = cfg['env']['thresholds']['speed']
         self.robot_max_wheel_rad_s = 42.0
         self.min_robot_placement_dist = 0.07
         self.cfg = cfg
@@ -168,28 +169,38 @@ class VSSGoTo(VecTask):
         )
 
     def compute_rewards_and_dones(self):
-        prev_robots_pos = self.robots_pos.clone()
-        self._refresh_tensors()
         self.rew_buf *= 0
+        
+        prev_tgt_dist = calculate_distance(self.tgts_pos, self.robots_pos)
+        self._refresh_tensors()
+
+        tgt_dist = calculate_distance(self.tgts_pos, self.robots_pos)
+        angle_diff = quat_diff_rad(self.tgts_quats, self.robots_quats)
+        robot_speed = self.robots_vel.norm(dim=-1)
+        
+        terminal = check_terminal_state(
+            tgt_dist,
+            angle_diff,
+            robot_speed,
+            self.dist_threshold,
+            self.angle_threshold,
+            self.speed_threshold,
+        )
+
+        self.reset_buf[:] =compute_goto_dones(
+            terminal,
+            self.progress_buf,
+            self.max_episode_length,
+        )
 
         # Move Rewards
         if self.w_move > 0:
-            move_rew, target_dists = compute_goto_move_rew(
-                    prev_robots_pos,
-                    self.robots_pos,
-                    self.tgts_pos,
-                )
-            move_rew *= self.w_move
+            move_rew = (prev_tgt_dist - tgt_dist) * self.w_move
             self.rew_buf[:] += move_rew.squeeze()
 
-        # Dones
-        self.reset_buf[:] = compute_goto_dones(
-            reset_buf=self.reset_buf,
-            progress_buf=self.progress_buf,
-            target_dists=target_dists.squeeze(),
-            max_episode_length=self.max_episode_length,
-            min_target_dist=self.min_target_dist,
-        )
+        if self.w_terminal > 0:
+            self.rew_buf[:] += terminal.squeeze() * self.w_terminal
+        
 
     def reset_dones(self):
         # TODO: include random pos inside goal 
@@ -506,43 +517,8 @@ def compute_obs(tgt_pos, tgt_quats, r_pos, r_vel, r_quats, r_w, r_acts):
         ), dim=-1
     ).squeeze()
 
-
 @torch.jit.script
-def compute_goal_rew(reset_buf, ball_pos, field_width, goal_height):
-    # type: (Tensor, Tensor, float, float) -> Tensor
-    ones = torch.ones_like(reset_buf)
-    zeros = torch.zeros_like(ones)
-
-    # CHECK GOAL
-    is_goal = (torch.abs(ball_pos[:, 0]) > (field_width / 2)) & (
-        torch.abs(ball_pos[:, 1]) < (goal_height / 2)
-    )
-    is_goal_blue = is_goal & (ball_pos[..., 0] > 0)
-    is_goal_yellow = is_goal & (ball_pos[..., 0] < 0)
-
-    goal = torch.where(is_goal_blue, ones, zeros)
-    goal = torch.where(is_goal_yellow, -ones, goal)
-    goal = goal.view(-1, 1, 1).expand(-1, 1, 3)
-    return torch.cat((goal, -goal), 1)
-
-
-@torch.jit.script
-def compute_grad_rew(prev_ball_pos, ball_pos, yellow_goal):
-    # type: (Tensor, Tensor, Tensor) -> Tensor
-
-    # Prev Pot
-    dist_ball_left_goal = torch.norm(prev_ball_pos - (-yellow_goal), dim=1)
-    dist_ball_right_goal = torch.norm(prev_ball_pos - yellow_goal, dim=1)
-    prev_pot = dist_ball_left_goal - dist_ball_right_goal
-
-    # New Pot
-    dist_ball_left_goal = torch.norm(ball_pos - (-yellow_goal), dim=1)
-    dist_ball_right_goal = torch.norm(ball_pos - yellow_goal, dim=1)
-    pot = dist_ball_left_goal - dist_ball_right_goal
-
-    grad = (pot - prev_pot).view(-1, 1, 1).expand(-1, 1, 3)
-    return torch.cat((grad, -grad), 1)
-
+def calculate_min_angle_diff(angle_1, angle_2):
 
 @torch.jit.script
 def compute_goto_move_rew(p_robots, robots, targets):

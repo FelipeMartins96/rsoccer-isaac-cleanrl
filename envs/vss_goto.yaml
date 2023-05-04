@@ -1,15 +1,17 @@
 physics_engine: 'physx'
 env:
-  numEnvs: 4095
+  numEnvs: 2048
   numObservations: 13
   numActions: 2
   maxEpisodeLength: 400
   clipActions: 1
   rew_weights:
-    goal: 0
-    grad: 0
+    terminal: 0
     move: 1
-    energy: 0.0
+  thresholds:
+    dist: 0.06
+    angle: 10
+    speed: 10
 sim:
   use_gpu_pipeline: True
   up_axis: 'z'
