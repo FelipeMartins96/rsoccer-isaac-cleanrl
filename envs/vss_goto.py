@@ -143,7 +143,6 @@ class VSSGoTo(VecTask):
         act = self.dof_velocity_buf * self.robot_max_wheel_rad_s
         self.gym.set_dof_velocity_target_tensor(self.sim, gymtorch.unwrap_tensor(act))
 
-
     def post_physics_step(self):
         self.progress_buf += 1
 
@@ -160,6 +159,7 @@ class VSSGoTo(VecTask):
     def compute_observations(self):
         self.obs_buf[:] = compute_obs(
             self.tgts_pos,
+            self.tgts_quats,
             self.robots_pos,
             self.robots_vel,
             self.robots_quats,
@@ -190,7 +190,6 @@ class VSSGoTo(VecTask):
             max_episode_length=self.max_episode_length,
             min_target_dist=self.min_target_dist,
         )
-
 
     def reset_dones(self):
         # TODO: include random pos inside goal 
@@ -293,7 +292,6 @@ class VSSGoTo(VecTask):
 
             self._add_field(_field, field_idx)
             self.envs.append(_field)
-
 
     def _add_ground(self):
         pp = gymapi.PlaneParams()
@@ -490,16 +488,19 @@ class VSSGoTo(VecTask):
 
 
 @torch.jit.script
-def compute_obs(tgt_pos, r_pos, r_vel, r_quats, r_w, r_acts):
-    # type: (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor) -> Tensor
-    angles = get_euler_xyz(r_quats.squeeze())[2].view(-1, 1, 1)
+def compute_obs(tgt_pos, tgt_quats, r_pos, r_vel, r_quats, r_w, r_acts):
+    # type: (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor) -> Tensor
+    tgt_angles = get_euler_xyz(tgt_quats.squeeze())[2].view(-1, 1, 1)
+    rbt_angles = get_euler_xyz(r_quats.squeeze())[2].view(-1, 1, 1)
     return torch.cat(
         (
             tgt_pos,
+            torch.cos(tgt_angles),
+            torch.sin(tgt_angles),
             r_pos,
             r_vel,
-            torch.cos(angles),
-            torch.sin(angles),
+            torch.cos(rbt_angles),
+            torch.sin(rbt_angles),
             r_w,
             r_acts
         ), dim=-1
