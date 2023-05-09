@@ -130,9 +130,10 @@ class VSS(VecTask):
         self.robots_ang_vel = self.root_ang_vel[:, self.s_robots].view(
             -1, NUM_TEAMS, NUM_ROBOTS, 1
         )
-
+        for i in range(50):
+            self.gym.simulate(self.sim)
         self._refresh_tensors()
-        self.env_reset_root_state = self.root_state[0].clone()
+        self.env_reset_root_state = self.root_state.mean(0).clone()
 
         self.dof_velocity_buf = torch.zeros(
             (self.num_fields, NUM_TEAMS, NUM_ROBOTS, 2),
@@ -179,6 +180,7 @@ class VSS(VecTask):
     #####################################################################
     def pre_physics_step(self, _actions):
         # reset progress_buf for envs reseted on previous step
+        print(_actions)
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
         self.progress_buf[env_ids] = 0
         self.dof_velocity_buf[:] = _actions.to(self.device)
@@ -400,13 +402,13 @@ class VSS(VecTask):
         body, left_wheel, right_wheel, tag_id, tag_team = 0, 1, 2, 3, 4
         wheel_radius = 0.024  # _z dimension
         pos_idx = idx + 1 if team == YELLOW_TEAM else -(idx + 1)
-        pose = gymapi.Transform(p=gymapi.Vec3(0.1 * pos_idx, 0.0, wheel_radius))
+        pose = gymapi.Transform(p=gymapi.Vec3(0.1 * pos_idx, 0.0, wheel_radius+0.005))
         robot = self.gym.create_actor(
             env=env,
             asset=rbt_asset,
             pose=pose,
             group=field_id,
-            filter=0b00,
+            filter=0b01,
             name='robot',
         )
         self.gym.set_rigid_body_color(

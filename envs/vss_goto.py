@@ -50,7 +50,6 @@ class VSSGoTo(VecTask):
         self.robot_max_wheel_rad_s = 42.0
         self.min_robot_placement_dist = 0.07
         self.cfg = cfg
-        self.envs = []
         super().__init__(
             config=cfg,
             rl_device=rl_device,
@@ -69,8 +68,6 @@ class VSSGoTo(VecTask):
         self._refresh_tensors()
         self.reset_dones()
         self.compute_observations()
-        self.target_geom = gymutil.WireframeSphereGeometry(0.06)
-        self.min_target_dist = 0.06
 
     def _acquire_tensors(self):
         """Acquire and wrap tensors. Create views."""
@@ -309,7 +306,6 @@ class VSSGoTo(VecTask):
                     self._add_target(_field, field_idx, team, robot)
 
             self._add_field(_field, field_idx)
-            self.envs.append(_field)
 
     def _add_ground(self):
         pp = gymapi.PlaneParams()
