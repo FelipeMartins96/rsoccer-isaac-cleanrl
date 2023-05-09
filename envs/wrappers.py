@@ -267,24 +267,23 @@ class HRL(gym.Wrapper):
         self.tgt_quats = self.env.robots_quats.clone()
     
     def step(self, actions):
-        with torch.no_grad():
-            actions = torch.clamp(actions, -1.0, 1.0) * self.field_size
-            # TODO get goto obs
-            self._obs_buf[:] = compute_goto_obs(
-                actions,
-                self.tgt_quats,
-                self.env.robots_pos,
-                self.env.robots_vel,
-                self.env.robots_quats,
-                self.env.robots_ang_vel,
-                self.last_acts
-            )
-            # TODO rotate obs
-            self._act_buf[:] = self.agent.get_action_and_value(self._obs_buf)[0]
-            # LAST SENT TARGET
-            actions[:,1] *= -1
-            self.last_acts = actions
-            return super().step(self._act_buf)
+        # Clamp actions and scale to field size
+        actions = torch.clamp(actions, -1.0, 1.0) * self.field_size
+        
+        self._obs_buf[:] = compute_goto_obs(
+            actions,
+            self.tgt_quats,
+            self.env.robots_pos,
+            self.env.robots_vel,
+            self.env.robots_quats,
+            self.env.robots_ang_vel,
+            self.last_acts
+        )
+        # TODO rotate obs
+        self._act_buf[:] = self.agent.get_action_and_value(self._obs_buf)[0]
+        # LAST SENT TARGET
+        self.last_acts = actions
+        return super().step(self._act_buf)
 
 from isaacgym.torch_utils import get_euler_xyz
 @torch.jit.script
@@ -292,7 +291,13 @@ def compute_goto_obs(tgt_pos, tgt_quats, r_pos, r_vel, r_quats, r_w, r_acts):
     # type: (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor) -> Tensor
     tgt_angles = get_euler_xyz(tgt_quats.reshape(-1, 4))[2].view(-1, 2, 3, 1)
     rbt_angles = get_euler_xyz(r_quats.reshape(-1, 4))[2].view(-1, 2, 3, 1)
-    return torch.cat(
+    mirror_tensor = torch.tensor(
+        [1.0, 1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0],
+        dtype=torch.float,
+        device="cuda:0",
+        requires_grad=False,
+    )
+    obs = torch.cat(
         (
             tgt_pos,
             torch.cos(tgt_angles),
@@ -305,3 +310,5 @@ def compute_goto_obs(tgt_pos, tgt_quats, r_pos, r_vel, r_quats, r_w, r_acts):
             r_acts
         ), dim=-1
     ).squeeze()
+    obs[:, 1] *= mirror_tensor
+    return obs
