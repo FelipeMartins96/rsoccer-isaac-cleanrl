@@ -240,3 +240,68 @@ class DMA(gym.Wrapper):
             dones.unsqueeze(1).repeat_interleave(3),
             infos,
         )
+
+from ppo_continuous_action_isaacgym import Agent
+from collections import namedtuple
+dummy_env = namedtuple(
+        'dummy_env', ['single_observation_space', 'single_action_space']
+    )
+class HRL(gym.Wrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        self.num_envs = getattr(env, "num_envs", 1)
+        d_env = dummy_env(
+            single_observation_space=gym.spaces.Box(-np.inf, np.inf, (13,)),
+            single_action_space=gym.spaces.Box(-1.0, 1.0, (2,)),
+        )
+        agent = Agent(d_env)
+        self.agent = agent
+        self.agent.load_state_dict(torch.load('1-agent.pt'))
+        self.agent.to(env.device)
+        self._action_space = gym.spaces.Box(-1.0, 1.0, env.action_space.shape[:-1] + (2,))
+        self._observation_space = gym.spaces.Box(-np.inf, np.inf, (env.num_obs,))
+        self.field_size = torch.tensor([env.field_width + env.goal_width*2, env.field_height], device=env.device, dtype=torch.float32, requires_grad=False)
+        self._obs_buf = torch.zeros((self.num_envs, 2, 3, 13), device=env.device, dtype=torch.float32, requires_grad=False)
+        self._act_buf = torch.zeros((self.num_envs, 2, 3, 2), device=env.device, dtype=torch.float32, requires_grad=False)
+        self.last_acts = self._act_buf.clone()
+        self.tgt_quats = self.env.robots_quats.clone()
+    
+    def step(self, actions):
+        with torch.no_grad():
+            actions = torch.clamp(actions, -1.0, 1.0) * self.field_size
+            # TODO get goto obs
+            self._obs_buf[:] = compute_goto_obs(
+                actions,
+                self.tgt_quats,
+                self.env.robots_pos,
+                self.env.robots_vel,
+                self.env.robots_quats,
+                self.env.robots_ang_vel,
+                self.last_acts
+            )
+            # TODO rotate obs
+            self._act_buf[:] = self.agent.get_action_and_value(self._obs_buf)[0]
+            # LAST SENT TARGET
+            actions[:,1] *= -1
+            self.last_acts = actions
+            return super().step(self._act_buf)
+
+from isaacgym.torch_utils import get_euler_xyz
+@torch.jit.script
+def compute_goto_obs(tgt_pos, tgt_quats, r_pos, r_vel, r_quats, r_w, r_acts):
+    # type: (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor) -> Tensor
+    tgt_angles = get_euler_xyz(tgt_quats.reshape(-1, 4))[2].view(-1, 2, 3, 1)
+    rbt_angles = get_euler_xyz(r_quats.reshape(-1, 4))[2].view(-1, 2, 3, 1)
+    return torch.cat(
+        (
+            tgt_pos,
+            torch.cos(tgt_angles),
+            torch.sin(tgt_angles),
+            r_pos,
+            r_vel,
+            torch.cos(rbt_angles),
+            torch.sin(rbt_angles),
+            r_w,
+            r_acts
+        ), dim=-1
+    ).squeeze()

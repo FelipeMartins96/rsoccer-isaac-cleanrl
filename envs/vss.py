@@ -180,7 +180,6 @@ class VSS(VecTask):
     #####################################################################
     def pre_physics_step(self, _actions):
         # reset progress_buf for envs reseted on previous step
-        print(_actions)
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
         self.progress_buf[env_ids] = 0
         self.dof_velocity_buf[:] = _actions.to(self.device)

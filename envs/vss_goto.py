@@ -156,7 +156,7 @@ class VSSGoTo(VecTask):
         self.compute_observations()
 
     def compute_observations(self):
-        self.obs_buf[:] = compute_obs(
+        self.obs_buf[:] = compute_goto_obs(
             self.tgts_pos,
             self.tgts_quats,
             self.robots_pos,
@@ -502,7 +502,7 @@ class VSSGoTo(VecTask):
 
 
 @torch.jit.script
-def compute_obs(tgt_pos, tgt_quats, r_pos, r_vel, r_quats, r_w, r_acts):
+def compute_goto_obs(tgt_pos, tgt_quats, r_pos, r_vel, r_quats, r_w, r_acts):
     # type: (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor) -> Tensor
     tgt_angles = get_euler_xyz(tgt_quats.squeeze())[2].view(-1, 1, 1)
     rbt_angles = get_euler_xyz(r_quats.squeeze())[2].view(-1, 1, 1)

@@ -3,11 +3,13 @@ import isaacgym  # noqa
 import isaacgymenvs
 import torch
 from envs.vss_goto import VSSGoTo
+from envs.vss import VSS
 # env setup
 from hydra import compose, initialize
 from isaacgymenvs.utils.reformat import omegaconf_to_dict
 from play import play_matches, get_team
 import argparse
+from envs.wrappers import HRL
 
 def parse_args():
     # fmt: off
@@ -29,11 +31,13 @@ if __name__ == "__main__":
     ALGO = args.algo
 
     with initialize(config_path="envs"):
-        cfg = compose(config_name="vss_goto")
+        # cfg = compose(config_name="vss_goto")
+        cfg = compose(config_name="vss")
     cfg = omegaconf_to_dict(cfg)
 
-    cfg['env']['numEnvs'] = 9
-    envs = VSSGoTo(
+    cfg['env']['numEnvs'] = 2
+    # envs = VSSGoTo(
+    envs = VSS(
         cfg=cfg,
         rl_device="cuda:0",
         sim_device="cuda:0",
@@ -42,8 +46,8 @@ if __name__ == "__main__":
         virtual_screen_capture=False,
         force_render=True,
     )
-
-    
+    envs = HRL(envs)
+    import pdb; pdb.set_trace()
     actions = torch.ones_like(envs.dof_velocity_buf).squeeze()
     while True:
         envs.step(actions)
