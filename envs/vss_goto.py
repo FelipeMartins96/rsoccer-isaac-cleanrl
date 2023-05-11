@@ -110,6 +110,12 @@ class VSSGoTo(VecTask):
             device=self.device,
             requires_grad=False,
         ) - (self.min_robot_placement_dist * 2)
+        self.field_size = torch.tensor(
+            [self.field_width + 2*self.goal_width, self.field_height],
+            dtype=torch.float,
+            device=self.device,
+            requires_grad=False,
+        )
         self.grad_offset = torch.tensor(
             [self.goal_width, 0.0],
             dtype=torch.float,
@@ -158,7 +164,6 @@ class VSSGoTo(VecTask):
     def compute_observations(self):
         self.obs_buf[:] = compute_goto_obs(
             self.tgts_pos,
-            self.tgts_quats,
             self.robots_pos,
             self.robots_vel,
             self.robots_quats,
@@ -241,7 +246,7 @@ class VSSGoTo(VecTask):
                 close_ids = too_close.nonzero(as_tuple=False).squeeze(-1)
 
             self.robots_pos[env_ids] = rand_pos[:, self.s_robots]
-            self.tgts_pos[env_ids] = rand_pos[:, self.s_tgts]
+            self.tgts_pos[env_ids] = (rand_pos[:, self.s_tgts] / self.field_scale) * self.field_size
 
             # randomize rotations
             rand_angles = torch_rand_float(
@@ -502,7 +507,23 @@ class VSSGoTo(VecTask):
 
 
 @torch.jit.script
-def compute_goto_obs(tgt_pos, tgt_quats, r_pos, r_vel, r_quats, r_w, r_acts):
+def compute_goto_obs(tgt_pos, r_pos, r_vel, r_quats, r_w, r_acts):
+    # type: (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor) -> Tensor
+    rbt_angles = get_euler_xyz(r_quats.squeeze())[2].view(-1, 1, 1)
+    return torch.cat(
+        (
+            tgt_pos,
+            r_pos,
+            r_vel,
+            torch.cos(rbt_angles),
+            torch.sin(rbt_angles),
+            r_w,
+            r_acts
+        ), dim=-1
+    ).squeeze()
+
+@torch.jit.script
+def compute_goto_obs_w_angles(tgt_pos, tgt_quats, r_pos, r_vel, r_quats, r_w, r_acts):
     # type: (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor) -> Tensor
     tgt_angles = get_euler_xyz(tgt_quats.squeeze())[2].view(-1, 1, 1)
     rbt_angles = get_euler_xyz(r_quats.squeeze())[2].view(-1, 1, 1)

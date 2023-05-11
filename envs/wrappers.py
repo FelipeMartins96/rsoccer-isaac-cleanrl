@@ -153,7 +153,7 @@ class SingleAgent(gym.Wrapper):
         super().__init__(env)
         self._action_space = gym.spaces.Box(-1.0, 1.0, (env.num_actions,))
         self._observation_space = gym.spaces.Box(-np.inf, np.inf, (env.num_obs,))
-        self.action_buf = env.dof_velocity_buf.clone()
+        self.action_buf = torch.zeros((env.num_envs,) + env.action_space.shape, device=env.rl_device, dtype=torch.float32, requires_grad=False)
         self.act_view = self.action_buf[:, 0, 0, :]
 
     def reset(self, **kwargs):
@@ -185,7 +185,7 @@ class CMA(gym.Wrapper):
         num_actions = env.num_actions * 3
         self._action_space = gym.spaces.Box(-1.0, 1.0, (num_actions,))
         self._observation_space = gym.spaces.Box(-np.inf, np.inf, (env.num_obs,))
-        self.action_buf = env.dof_velocity_buf.clone()
+        self.action_buf = torch.zeros((env.num_envs,) + env.action_space.shape, device=env.rl_device, dtype=torch.float32, requires_grad=False)
         self.act_view = self.action_buf[:, 0, :, :].view(-1, num_actions)
 
     def reset(self, **kwargs):
@@ -216,7 +216,7 @@ class DMA(gym.Wrapper):
         setattr(env, "num_environments", getattr(env, "num_envs", 1) * 3)
         self._action_space = gym.spaces.Box(-1.0, 1.0, (env.num_actions,))
         self._observation_space = gym.spaces.Box(-np.inf, np.inf, (env.num_obs,))
-        self.action_buf = env.dof_velocity_buf.clone()
+        self.action_buf = torch.zeros((env.num_envs,) + env.action_space.shape, device=env.rl_device, dtype=torch.float32, requires_grad=False)
 
     def reset(self, **kwargs):
         observations = super().reset(**kwargs)
@@ -249,50 +249,54 @@ dummy_env = namedtuple(
 class HRL(gym.Wrapper):
     def __init__(self, env):
         super().__init__(env)
-        self.num_envs = getattr(env, "num_envs", 1)
+        manager_act_size = 2
+        worker_obs_size = 11
+        self.field_size = torch.tensor([env.field_width + env.goal_width*2, env.field_height], device=env.rl_device, dtype=torch.float32, requires_grad=False)
+        self._action_space = gym.spaces.Box(-1.0, 1.0, env.action_space.shape[:-1] + (manager_act_size,))
+        self._observation_space = gym.spaces.Box(-np.inf, np.inf, (env.num_obs,))
+        self._worker_act_buf = torch.zeros((env.num_envs,) + env.action_space.shape, device=env.rl_device, dtype=torch.float32, requires_grad=False)
+        self._manager_act_buf = torch.zeros((env.num_envs,) + self._action_space.shape, device=env.rl_device, dtype=torch.float32, requires_grad=False)
+        self._worker_obs_buf = torch.zeros((env.num_envs, 2, 3, worker_obs_size), device=env.rl_device, dtype=torch.float32, requires_grad=False)
+        
+        # LOAD AGENT
         d_env = dummy_env(
-            single_observation_space=gym.spaces.Box(-np.inf, np.inf, (13,)),
-            single_action_space=gym.spaces.Box(-1.0, 1.0, (2,)),
+            single_observation_space=gym.spaces.Box(-np.inf, np.inf, (worker_obs_size,)),
+            single_action_space=gym.spaces.Box(-1.0, 1.0, (manager_act_size,)),
         )
         agent = Agent(d_env)
         self.agent = agent
         self.agent.load_state_dict(torch.load('1-agent.pt'))
         self.agent.to(env.device)
-        self._action_space = gym.spaces.Box(-1.0, 1.0, env.action_space.shape[:-1] + (2,))
-        self._observation_space = gym.spaces.Box(-np.inf, np.inf, (env.num_obs,))
-        self.field_size = torch.tensor([env.field_width + env.goal_width*2, env.field_height], device=env.device, dtype=torch.float32, requires_grad=False)
-        self._obs_buf = torch.zeros((self.num_envs, 2, 3, 13), device=env.device, dtype=torch.float32, requires_grad=False)
-        self._act_buf = torch.zeros((self.num_envs, 2, 3, 2), device=env.device, dtype=torch.float32, requires_grad=False)
-        self.last_acts = self._act_buf.clone()
-        self.tgt_quats = self.env.robots_quats.clone()
     
     def step(self, actions):
+        # Reset previous actions
+        env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
+        self._manager_act_buf[env_ids] *= 0
+        
         # Clamp actions and scale to field size
         actions = torch.clamp(actions, -1.0, 1.0) * self.field_size
         
-        self._obs_buf[:] = compute_goto_obs(
+        self._worker_obs_buf[:] = compute_goto_obs(
             actions,
-            self.tgt_quats,
             self.env.robots_pos,
             self.env.robots_vel,
             self.env.robots_quats,
             self.env.robots_ang_vel,
-            self.last_acts
+            self._manager_act_buf
         )
-        # TODO rotate obs
-        self._act_buf[:] = self.agent.get_action_and_value(self._obs_buf)[0]
-        # LAST SENT TARGET
-        self.last_acts = actions
-        return super().step(self._act_buf)
+        self._manager_act_buf[:] = actions
+
+        # Get worker actions
+        self._worker_act_buf[:] = self.agent.get_action_and_value(self._worker_obs_buf)[0]
+        return super().step(self._worker_act_buf)
 
 from isaacgym.torch_utils import get_euler_xyz
 @torch.jit.script
-def compute_goto_obs(tgt_pos, tgt_quats, r_pos, r_vel, r_quats, r_w, r_acts):
-    # type: (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor) -> Tensor
-    tgt_angles = get_euler_xyz(tgt_quats.reshape(-1, 4))[2].view(-1, 2, 3, 1)
+def compute_goto_obs(tgt_pos, r_pos, r_vel, r_quats, r_w, r_acts):
+    # type: (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor) -> Tensor
     rbt_angles = get_euler_xyz(r_quats.reshape(-1, 4))[2].view(-1, 2, 3, 1)
     mirror_tensor = torch.tensor(
-        [1.0, 1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0],
+        [1.0, 1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0],
         dtype=torch.float,
         device="cuda:0",
         requires_grad=False,
@@ -300,8 +304,6 @@ def compute_goto_obs(tgt_pos, tgt_quats, r_pos, r_vel, r_quats, r_w, r_acts):
     obs = torch.cat(
         (
             tgt_pos,
-            torch.cos(tgt_angles),
-            torch.sin(tgt_angles),
             r_pos,
             r_vel,
             torch.cos(rbt_angles),

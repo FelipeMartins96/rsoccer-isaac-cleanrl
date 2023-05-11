@@ -1,9 +1,9 @@
 physics_engine: 'physx'
 env:
   numEnvs: 2048
-  numObservations: 13
+  numObservations: 11
   numActions: 2
-  maxEpisodeLength: 400
+  maxEpisodeLength: 100
   clipActions: 1
   rew_weights:
     terminal: 5
