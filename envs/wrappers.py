@@ -40,6 +40,9 @@ def make_env(args):
             virtual_screen_capture=args.capture_video,
             force_render=False,
         )
+    if args.hierarchical:
+        envs = HRL(envs)
+    
     wrappers = {
         'sa': SingleAgent,
         'cma': CMA,
