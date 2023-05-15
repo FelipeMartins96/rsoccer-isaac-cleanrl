@@ -58,7 +58,7 @@ def parse_args():
         help="if toggled, cuda will be enabled by default")
     parser.add_argument("--track", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="if toggled, this experiment will be tracked with Weights and Biases")
-    parser.add_argument("--wandb-project-name", type=str, default="isaac-goto",
+    parser.add_argument("--wandb-project-name", type=str, default="ppo-isaac-cleanrl",
         help="the wandb's project name")
     parser.add_argument("--wandb-entity", type=str, default=None,
         help="the entity (team) of wandb's project")
@@ -66,15 +66,15 @@ def parse_args():
         help="whether to capture videos of the agent performances (check out `videos` folder)")
 
     # Algorithm specific arguments
-    parser.add_argument("--env-id", type=str, default="goto",
+    parser.add_argument("--env-id", type=str, default="sa",
         help="the id of the environment")
-    parser.add_argument("--total-timesteps", type=int, default=100000000,
+    parser.add_argument("--total-timesteps", type=int, default=1000000000,
         help="total timesteps of the experiments")
     parser.add_argument("--learning-rate", type=float, default=0.001,
         help="the learning rate of the optimizer")
-    parser.add_argument("--num-envs", type=int, default=2048,
+    parser.add_argument("--num-envs", type=int, default=4095,
         help="the number of parallel game environments")
-    parser.add_argument("--num-steps", type=int, default=64,
+    parser.add_argument("--num-steps", type=int, default=128,
         help="the number of steps to run in each environment per policy rollout")
     parser.add_argument("--anneal-lr", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
         help="Toggle learning rate annealing for policy and value networks")
@@ -394,10 +394,9 @@ if __name__ == "__main__":
         writer.add_scalar("Charts/SPS", int(global_step / (time.time() - start_time)), global_step)
 
     # Save Model
-    torch.save(agent.state_dict(), f"{save_path}/{run_name}/{args.seed}-agent.pt")
     if args.track:
-        # TODO: ADD RUN ID
-        wandb.save(f"{save_path}/{run_name}/{args.seed}-agent.pt")
+        torch.save(agent.state_dict(), f"{save_path}/{run_name}/agent-{wandb.run.id}.pt")
+        wandb.save(f"{save_path}/{run_name}/agent-{wandb.run.id}.pt")
     # TODO MOVE TO VALIDATION SCRIPT
     # if args.track and args.env_id != 'goto':
     #     with torch.no_grad():
