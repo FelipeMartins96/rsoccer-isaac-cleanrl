@@ -216,10 +216,10 @@ class CMA(gym.Wrapper):
 class DMA(gym.Wrapper):
     def __init__(self, env):
         super().__init__(env)
+        self.action_buf = torch.zeros((env.num_envs,) + env.action_space.shape, device=env.rl_device, dtype=torch.float32, requires_grad=False)
         setattr(env, "num_environments", getattr(env, "num_envs", 1) * 3)
         self._action_space = gym.spaces.Box(-1.0, 1.0, (env.num_actions,))
         self._observation_space = gym.spaces.Box(-np.inf, np.inf, (env.num_obs,))
-        self.action_buf = torch.zeros((env.num_envs,) + env.action_space.shape, device=env.rl_device, dtype=torch.float32, requires_grad=False)
 
     def reset(self, **kwargs):
         observations = super().reset(**kwargs)
