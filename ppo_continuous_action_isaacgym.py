@@ -58,7 +58,7 @@ def parse_args():
         help="if toggled, cuda will be enabled by default")
     parser.add_argument("--track", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="if toggled, this experiment will be tracked with Weights and Biases")
-    parser.add_argument("--wandb-project-name", type=str, default="ppo-isaac-cleanrl",
+    parser.add_argument("--wandb-project-name", type=str, default="ppo-isaac",
         help="the wandb's project name")
     parser.add_argument("--wandb-entity", type=str, default=None,
         help="the entity (team) of wandb's project")
@@ -68,13 +68,13 @@ def parse_args():
     # Algorithm specific arguments
     parser.add_argument("--env-id", type=str, default="sa",
         help="the id of the environment")
-    parser.add_argument("--total-timesteps", type=int, default=1000000000,
+    parser.add_argument("--total-timesteps", type=int, default=500000000,
         help="total timesteps of the experiments")
     parser.add_argument("--learning-rate", type=float, default=0.001,
         help="the learning rate of the optimizer")
     parser.add_argument("--num-envs", type=int, default=4095,
         help="the number of parallel game environments")
-    parser.add_argument("--num-steps", type=int, default=128,
+    parser.add_argument("--num-steps", type=int, default=64,
         help="the number of steps to run in each environment per policy rollout")
     parser.add_argument("--anneal-lr", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
         help="Toggle learning rate annealing for policy and value networks")
@@ -176,7 +176,6 @@ class ExtractObsWrapper(gym.ObservationWrapper):
 
 
 if __name__ == "__main__":
-    save_path = "runs"
     args = parse_args()
     if args.test:
         save_path = "runs"
@@ -184,7 +183,8 @@ if __name__ == "__main__":
         args.track = True
         args.capture_video = False
         args.total_timesteps = 1000000
-    run_name = f"{args.exp_name}_ppo-{args.env_id}"
+    run_name = f"ppo-{args.env_id}"
+    save_path = f"runs/{args.exp_name}"
     if args.track:
         import wandb
 
