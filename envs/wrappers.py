@@ -158,6 +158,7 @@ class SingleAgent(gym.Wrapper):
         self._observation_space = gym.spaces.Box(-np.inf, np.inf, (env.num_obs,))
         self.action_buf = torch.zeros((env.num_envs,) + env.action_space.shape, device=env.rl_device, dtype=torch.float32, requires_grad=False)
         self.act_view = self.action_buf[:, 0, 0, :]
+        env.num_controlled = 1
 
     def reset(self, **kwargs):
         observations = super().reset(**kwargs)
@@ -190,6 +191,7 @@ class CMA(gym.Wrapper):
         self._observation_space = gym.spaces.Box(-np.inf, np.inf, (env.num_obs,))
         self.action_buf = torch.zeros((env.num_envs,) + env.action_space.shape, device=env.rl_device, dtype=torch.float32, requires_grad=False)
         self.act_view = self.action_buf[:, 0, :, :].view(-1, num_actions)
+        env.num_controlled = 3
 
     def reset(self, **kwargs):
         observations = super().reset(**kwargs)
@@ -220,6 +222,7 @@ class DMA(gym.Wrapper):
         setattr(env, "num_environments", getattr(env, "num_envs", 1) * 3)
         self._action_space = gym.spaces.Box(-1.0, 1.0, (env.num_actions,))
         self._observation_space = gym.spaces.Box(-np.inf, np.inf, (env.num_obs,))
+        env.num_controlled = 3
 
     def reset(self, **kwargs):
         observations = super().reset(**kwargs)
@@ -270,13 +273,19 @@ class HRL(gym.Wrapper):
         self.agent = agent
         self.agent.load_state_dict(torch.load('1-agent.pt'))
         self.agent.to(env.device)
+
+        self.num_controlled = None
     
     def step(self, actions):
+        assert self.num_controlled is not None # TODO: case if none
+
         # Reset previous actions
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
         self._manager_act_buf[env_ids] *= 0
         
         # Clamp actions and scale to field size
+        self._worker_act_buf[:] = actions
+        
         actions = torch.clamp(actions, -1.0, 1.0) * self.field_size
         
         self._worker_obs_buf[:] = compute_goto_obs(
@@ -290,7 +299,7 @@ class HRL(gym.Wrapper):
         self._manager_act_buf[:] = actions
 
         # Get worker actions
-        self._worker_act_buf[:] = self.agent.get_action_and_value(self._worker_obs_buf)[0]
+        self._worker_act_buf[:, 0:1, 0:self.num_controlled] = self.agent.get_action_and_value(self._worker_obs_buf)[0][:, 0:1, 0:self.num_controlled]
         return super().step(self._worker_act_buf)
 
 from isaacgym.torch_utils import get_euler_xyz
