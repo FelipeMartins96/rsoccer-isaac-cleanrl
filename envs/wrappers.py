@@ -42,7 +42,7 @@ def make_env(args):
         )
     if args.hierarchical:
         envs = HRL(envs)
-    
+
     wrappers = {
         'sa': SingleAgent,
         'cma': CMA,
@@ -82,7 +82,7 @@ def make_env_goto(args):
 class RecordEpisodeStatisticsTorchVSS(gym.Wrapper):
     def __init__(self, env, device):
         super().__init__(env)
-        self.num_envs = getattr(env, "num_envs", 1)
+        self.num_envs = getattr(env, "num_environments", 1)
         self.device = device
         self.episode_returns = None
         self.episode_lengths = None
@@ -121,7 +121,7 @@ class RecordEpisodeStatisticsTorchVSS(gym.Wrapper):
 class RecordEpisodeStatisticsTorch(gym.Wrapper):
     def __init__(self, env, device):
         super().__init__(env)
-        self.num_envs = getattr(env, "num_envs", 1)
+        self.num_envs = getattr(env, "num_environments", 1)
         self.device = device
         self.episode_returns = None
         self.episode_lengths = None
