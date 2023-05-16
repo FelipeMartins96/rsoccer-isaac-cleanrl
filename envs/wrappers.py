@@ -82,17 +82,17 @@ def make_env_goto(args):
 class RecordEpisodeStatisticsTorchVSS(gym.Wrapper):
     def __init__(self, env, device):
         super().__init__(env)
-        self.num_envs = getattr(env, "num_environments", 1)
+        self._num_envs = getattr(env, "num_environments", 1)
         self.device = device
         self.episode_returns = None
         self.episode_lengths = None
 
     def reset(self, **kwargs):
         observations = super().reset(**kwargs)
-        self.episode_returns = torch.zeros((self.num_envs, 4), dtype=torch.float32, device=self.device)
-        self.episode_lengths = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
-        self.returned_episode_returns = torch.zeros((self.num_envs, 4), dtype=torch.float32, device=self.device)
-        self.returned_episode_lengths = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
+        self.episode_returns = torch.zeros((self._num_envs, 4), dtype=torch.float32, device=self.device)
+        self.episode_lengths = torch.zeros(self._num_envs, dtype=torch.int32, device=self.device)
+        self.returned_episode_returns = torch.zeros((self._num_envs, 4), dtype=torch.float32, device=self.device)
+        self.returned_episode_lengths = torch.zeros(self._num_envs, dtype=torch.int32, device=self.device)
         return observations
 
     def step(self, action):
@@ -121,17 +121,17 @@ class RecordEpisodeStatisticsTorchVSS(gym.Wrapper):
 class RecordEpisodeStatisticsTorch(gym.Wrapper):
     def __init__(self, env, device):
         super().__init__(env)
-        self.num_envs = getattr(env, "num_environments", 1)
+        self._num_envs = getattr(env, "num_environments", 1)
         self.device = device
         self.episode_returns = None
         self.episode_lengths = None
 
     def reset(self, **kwargs):
         observations = super().reset(**kwargs)
-        self.episode_returns = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
-        self.episode_lengths = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
-        self.returned_episode_returns = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
-        self.returned_episode_lengths = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
+        self.episode_returns = torch.zeros(self._num_envs, dtype=torch.float32, device=self.device)
+        self.episode_lengths = torch.zeros(self._num_envs, dtype=torch.int32, device=self.device)
+        self.returned_episode_returns = torch.zeros(self._num_envs, dtype=torch.float32, device=self.device)
+        self.returned_episode_lengths = torch.zeros(self._num_envs, dtype=torch.int32, device=self.device)
         return observations
 
     def step(self, action):
@@ -183,7 +183,7 @@ class SingleAgent(gym.Wrapper):
 class CMA(gym.Wrapper):
     def __init__(self, env):
         super().__init__(env)
-        self.num_envs = getattr(env, "num_envs", 1)
+        self._num_envs = getattr(env, "num_envs", 1)
         self.device = env.device
         num_actions = env.num_actions * 3
         self._action_space = gym.spaces.Box(-1.0, 1.0, (num_actions,))

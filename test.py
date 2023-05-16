@@ -47,9 +47,10 @@ if __name__ == "__main__":
         force_render=True,
     )
     envs = HRL(envs)
-    envs = SingleAgent(envs)
+    # envs = SingleAgent(envs)
     # envs = CMA(envs)
-    # envs = DMA(envs)
-    actions = torch.ones((envs.num_envs,) + envs.action_space.shape, device=envs.rl_device) * 2
+    envs = DMA(envs)
+
+    actions = torch.ones((envs.num_environments,) + envs.action_space.shape, device=envs.rl_device) * 2
     while True:
         envs.step(actions)
