@@ -257,7 +257,7 @@ class HRL(gym.Wrapper):
         super().__init__(env)
         manager_act_size = 2
         worker_obs_size = 11
-        self.field_size = torch.tensor([env.field_width + env.goal_width*2, env.field_height], device=env.rl_device, dtype=torch.float32, requires_grad=False)
+        self.field_size = torch.tensor([env.field_width + env.goal_width*2, env.field_height], device=env.rl_device, dtype=torch.float32, requires_grad=False) / 2
         self._action_space = gym.spaces.Box(-1.0, 1.0, env.action_space.shape[:-1] + (manager_act_size,))
         self._observation_space = gym.spaces.Box(-np.inf, np.inf, (env.num_obs,))
         self._worker_act_buf = torch.zeros((env.num_envs,) + env.action_space.shape, device=env.rl_device, dtype=torch.float32, requires_grad=False)
