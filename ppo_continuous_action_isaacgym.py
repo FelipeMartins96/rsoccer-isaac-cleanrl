@@ -198,7 +198,7 @@ if __name__ == "__main__":
             monitor_gym=True,
             save_code=True,
         )
-    writer = SummaryWriter(f"{save_path}/{run_name}/{args.seed}")
+    writer = SummaryWriter(f"{save_path}/{run_name}/{wandb.run.id if args.track else ''}")
     writer.add_text(
         "hyperparameters",
         "|param|value|\n|-|-|\n%s" % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
@@ -228,7 +228,7 @@ if __name__ == "__main__":
         print(f"record_video_step_frequency={args.record_video_step_frequency}")
         envs = gym.wrappers.RecordVideo(
             envs,
-            f"{save_path}/{run_name}/{args.seed}",
+            f"{save_path}/{run_name}/{wandb.run.id if args.track else ''}",
             step_trigger=lambda step: step % args.record_video_step_frequency == 0,
             video_length=100,  # for each video record up to 100 steps
         )
