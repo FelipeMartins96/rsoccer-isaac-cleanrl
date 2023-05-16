@@ -302,6 +302,12 @@ class HRL(gym.Wrapper):
         self._worker_act_buf[:, 0:1, 0:self.num_controlled] = self.agent.get_action_and_value(self._worker_obs_buf)[0][:, 0:1, 0:self.num_controlled]
         return super().step(self._worker_act_buf)
 
+    def render(self, mode="rgb_array"):
+        if self.view is not None:
+            self.view.set_targets(self._manager_act_buf[0, 0, 0:self.num_controlled])
+        
+        return super().render(mode)
+
 from isaacgym.torch_utils import get_euler_xyz
 @torch.jit.script
 def compute_goto_obs(tgt_pos, r_pos, r_vel, r_quats, r_w, r_acts):

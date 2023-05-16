@@ -3,7 +3,7 @@ FROM isaacgym:latest
 USER root
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-    xvfb ffmpeg
+    xvfb ffmpeg freeglut3-dev
     
 RUN pip install --upgrade pip
 
@@ -15,4 +15,4 @@ RUN cd IsaacGymEnvs &&\
 
 USER gymuser
 
-RUN pip install gym==0.23.1 wandb
+RUN pip install gym==0.23.1 wandb pyglet==1.5.27

@@ -42,15 +42,16 @@ if __name__ == "__main__":
         rl_device="cuda:0",
         sim_device="cuda:0",
         graphics_device_id=0,
-        headless=False,
+        headless=True,
         virtual_screen_capture=False,
-        force_render=True,
+        force_render=False,
     )
     envs = HRL(envs)
-    # envs = SingleAgent(envs)
+    envs = SingleAgent(envs)
     # envs = CMA(envs)
-    envs = DMA(envs)
+    # envs = DMA(envs)
 
     actions = torch.ones((envs.num_environments,) + envs.action_space.shape, device=envs.rl_device) * 2
     while True:
         envs.step(actions)
+        envs.render()

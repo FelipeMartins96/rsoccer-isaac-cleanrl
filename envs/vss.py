@@ -66,6 +66,7 @@ class VSS(VecTask):
             cam_pos = gymapi.Vec3(1.7, 1.09, 4.6)
             cam_target = gymapi.Vec3(1.7, 1.1, 0.0)
             self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
+        self.view = None
 
         self._acquire_tensors()
         self._refresh_tensors()
@@ -522,6 +523,30 @@ class VSS(VecTask):
         add_end_walls()
         add_goal_walls()
 
+    #####################################################################
+    ###=============================render============================###
+    #####################################################################
+    def render(self, mode="rgb_array"):
+        if self.view == None:
+            from envs.Render import RCGymRender
+            self.view = RCGymRender(3,3,simulator='vss')
+
+        # TODO: render for all robots
+        # self.view.set_target(self.target_point[0].x, self.target_point[0].y)
+        # self.view.set_target_angle(np.rad2deg(self.target_angle[0]))
+
+        ret =  self.view.render_frame(
+            self.ball_pos[0].cpu(),
+            self.robots_pos[0].cpu(),
+            self.robots_quats[0].cpu(), 
+            return_rgb_array=True, 
+            )   
+        
+        if self.reset_buf[0]:
+            del(self.view)
+            self.view = None
+        
+        return ret
 
 #####################################################################
 ###=========================jit functions=========================###
