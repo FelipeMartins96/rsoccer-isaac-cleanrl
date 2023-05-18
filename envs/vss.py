@@ -67,6 +67,7 @@ class VSS(VecTask):
             cam_target = gymapi.Vec3(1.7, 1.1, 0.0)
             self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
         self.view = None
+        self.speed_factor = 1.0
 
         self._acquire_tensors()
         self._refresh_tensors()
@@ -325,7 +326,7 @@ class VSS(VecTask):
                     requires_grad=False,
                 )
                 - 0.5
-            ) * 1
+            ) * self.speed_factor
             self.ball_vel[env_ids] = rand_ball_vel
 
             self.gym.set_actor_root_state_tensor(
@@ -337,6 +338,8 @@ class VSS(VecTask):
     def _refresh_tensors(self):
         self.gym.refresh_actor_root_state_tensor(self.sim)
 
+    def set_speed_factor(self, speed_factor):
+        self.speed_factor = speed_factor
     #####################################################################
     ###===========================create_sim==========================###
     #####################################################################
@@ -538,7 +541,8 @@ class VSS(VecTask):
         ret =  self.view.render_frame(
             self.ball_pos[0].cpu(),
             self.robots_pos[0].cpu(),
-            self.robots_quats[0].cpu(), 
+            self.robots_quats[0].cpu(),
+            self.speed_factor, 
             return_rgb_array=True, 
             )   
         

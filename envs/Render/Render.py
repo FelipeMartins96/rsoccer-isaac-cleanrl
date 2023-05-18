@@ -146,7 +146,8 @@ class RCGymRender:
             self, 
             ball_pos,
             robots_pos,
-            robots_quats, 
+            robots_quats,
+            speed_factor,
             return_rgb_array: bool = False, 
         ) -> None:
         self.ball.set_translation(ball_pos[0], ball_pos[1])
@@ -171,6 +172,13 @@ class RCGymRender:
         
         for i, yellow_ang in enumerate(get_euler_xyz(robots_quats[1])[2]):
             self.yellow_robots[i].set_rotation(yellow_ang)
+
+        for i in range(2):
+            size = self.field.ball_radius * 2 * speed_factor if i else self.field.ball_radius * 2
+            speed_factor_geom = rendering.make_circle(size, filled=bool(i))
+            speed_factor_geom.add_attr(rendering.Transform(translation=(-0.85, -0.65)))
+            speed_factor_geom.set_color(*LINES_WHITE)
+            self.screen.add_onetime(speed_factor_geom)
 
         for i, blue_tgt in enumerate(self.targets):
             tag_id_colors= {0: TAG_GREEN,1: TAG_PURPLE,2: TAG_RED}

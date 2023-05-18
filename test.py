@@ -53,5 +53,6 @@ if __name__ == "__main__":
 
     actions = torch.ones((envs.num_environments,) + envs.action_space.shape, device=envs.rl_device) * 2
     while True:
+        envs.set_speed_factor(0)
         envs.step(actions)
         envs.render()

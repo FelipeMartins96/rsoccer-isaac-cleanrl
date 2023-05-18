@@ -118,6 +118,7 @@ def parse_args():
     parser.add_argument("--hierarchical", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     parser.add_argument("--no-move", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     parser.add_argument("--no-energy", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
+    parser.add_argument("--speed-factor", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     
     args = parser.parse_args()
     args.batch_size = int(args.num_envs * args.num_steps)
@@ -180,13 +181,12 @@ class ExtractObsWrapper(gym.ObservationWrapper):
 if __name__ == "__main__":
     args = parse_args()
     if args.test:
-        save_path = "runs"
         args.wandb_project_name = "test-cleanrl-rsoccer"
-        args.track = True
-        args.capture_video = False
         args.total_timesteps = 1000000
+
     run_name = f"ppo-{args.env_id}"
-    save_path = f"runs/{args.exp_name}"
+    save_path = f"runs/{args.exp_name}/{run_name}"
+
     if args.track:
         import wandb
 
@@ -200,7 +200,7 @@ if __name__ == "__main__":
             monitor_gym=True,
             save_code=True,
         )
-    writer = SummaryWriter(f"{save_path}/{run_name}/{wandb.run.id if args.track else ''}")
+    writer = SummaryWriter(f"{save_path}/{wandb.run.id if args.track else 'non-tracked'}")
     writer.add_text(
         "hyperparameters",
         "|param|value|\n|-|-|\n%s" % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
@@ -230,7 +230,7 @@ if __name__ == "__main__":
         print(f"record_video_step_frequency={args.record_video_step_frequency}")
         envs = gym.wrappers.RecordVideo(
             envs,
-            f"{save_path}/{run_name}/{wandb.run.id if args.track else ''}",
+            f"{save_path}/{wandb.run.id if args.track else ''}",
             step_trigger=lambda step: step % args.record_video_step_frequency == 0,
             video_length=100,  # for each video record up to 100 steps
         )
@@ -267,6 +267,9 @@ if __name__ == "__main__":
             frac = 1.0 - (update - 1.0) / num_updates
             lrnow = frac * args.learning_rate
             optimizer.param_groups[0]["lr"] = lrnow
+        
+        if args.speed_factor:
+            envs.set_speed_factor((update - 1.0) / num_updates)
 
         for step in range(0, args.num_steps):
             global_step += 1 * args.num_envs
@@ -386,6 +389,7 @@ if __name__ == "__main__":
 
         # TRY NOT TO MODIFY: record rewards for plotting purposes
         writer.add_scalar("losses/learning_rate", optimizer.param_groups[0]["lr"], global_step)
+        writer.add_scalar("losses/speed_factor", envs.speed_factor, global_step)
         writer.add_scalar("losses/value_loss", v_loss.item(), global_step)
         writer.add_scalar("losses/policy_loss", pg_loss.item(), global_step)
         writer.add_scalar("losses/entropy", entropy_loss.item(), global_step)
@@ -397,5 +401,5 @@ if __name__ == "__main__":
 
     # Save Model
     if args.track:
-        torch.save(agent.state_dict(), f"{save_path}/{run_name}/agent-{wandb.run.id}.pt")
-        wandb.save(f"{save_path}/{run_name}/agent-{wandb.run.id}.pt")
+        torch.save(agent.state_dict(), f"{save_path}/agent-{wandb.run.id}.pt")
+        wandb.save(f"{save_path}/agent-{wandb.run.id}.pt")
