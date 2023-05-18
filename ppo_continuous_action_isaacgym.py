@@ -116,6 +116,8 @@ def parse_args():
     parser.add_argument("--check-angle", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     parser.add_argument("--check-speed", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     parser.add_argument("--hierarchical", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
+    parser.add_argument("--no-move", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
+    parser.add_argument("--no-energy", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     
     args = parser.parse_args()
     args.batch_size = int(args.num_envs * args.num_steps)

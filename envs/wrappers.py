@@ -29,6 +29,10 @@ def make_env(args):
     if args.env_id == 'dma':
         assert args.num_envs % 3 == 0
         cfg['env']['numEnvs'] = int(args.num_envs / 3)
+    if args.no_move:
+        cfg['env']['rew_weights']['move'] = 0.0
+    if args.no_energy:
+        cfg['env']['rew_weights']['energy'] = 0.0
     
     from envs.vss import VSS
     envs = VSS(
