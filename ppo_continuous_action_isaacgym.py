@@ -68,15 +68,15 @@ def parse_args():
     # Algorithm specific arguments
     parser.add_argument("--env-id", type=str, default="sa",
         help="the id of the environment")
-    parser.add_argument("--total-timesteps", type=int, default=500000000,
+    parser.add_argument("--total-timesteps", type=int, default=1000000000,
         help="total timesteps of the experiments")
     parser.add_argument("--learning-rate", type=float, default=0.001,
         help="the learning rate of the optimizer")
     parser.add_argument("--num-envs", type=int, default=4095,
         help="the number of parallel game environments")
-    parser.add_argument("--num-steps", type=int, default=64,
+    parser.add_argument("--num-steps", type=int, default=256,
         help="the number of steps to run in each environment per policy rollout")
-    parser.add_argument("--anneal-lr", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
+    parser.add_argument("--anneal-lr", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Toggle learning rate annealing for policy and value networks")
     parser.add_argument("--adaptative-lr", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Toggle adaptative learning rate for policy and value networks")
@@ -107,7 +107,7 @@ def parse_args():
 
     parser.add_argument("--reward-scaler", type=float, default=1000,
         help="the scale factor applied to the reward during training")
-    parser.add_argument("--record-video-step-frequency", type=int, default=3000,
+    parser.add_argument("--record-video-step-frequency", type=int, default=6000,
         help="the frequency at which to record the videos")
     parser.add_argument("--test", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Toggle test runs, save to test path.")
@@ -232,7 +232,7 @@ if __name__ == "__main__":
             envs,
             f"{save_path}/{wandb.run.id if args.track else ''}",
             step_trigger=lambda step: step % args.record_video_step_frequency == 0,
-            video_length=100,  # for each video record up to 100 steps
+            video_length=400,  # for each video record up to 100 steps
         )
     envs = ExtractObsWrapper(envs)
     envs = RecordEpisodeStatisticsTorch(envs, device)
