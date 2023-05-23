@@ -61,7 +61,9 @@ def parse_args():
     parser.add_argument("--wandb-project-name", type=str, default="ppo-isaac",
         help="the wandb's project name")
     parser.add_argument("--wandb-entity", type=str, default=None,
-        help="the entity (team) of wandb's project")
+        help="the entity (team) of wandb's project")    
+    parser.add_argument("--wandb-notes", type=str, default=None,
+        help="run notes")
     parser.add_argument("--capture-video", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="whether to capture videos of the agent performances (check out `videos` folder)")
 
@@ -107,7 +109,7 @@ def parse_args():
 
     parser.add_argument("--reward-scaler", type=float, default=1000,
         help="the scale factor applied to the reward during training")
-    parser.add_argument("--record-video-step-frequency", type=int, default=6000,
+    parser.add_argument("--record-video-step-frequency", type=int, default=8000,
         help="the frequency at which to record the videos")
     parser.add_argument("--test", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Toggle test runs, save to test path.")
@@ -199,7 +201,9 @@ if __name__ == "__main__":
             name=run_name,
             monitor_gym=True,
             save_code=True,
+            notes=args.wandb_notes,
         )
+    breakpoint()
     writer = SummaryWriter(f"{save_path}/{wandb.run.id if args.track else 'non-tracked'}")
     writer.add_text(
         "hyperparameters",
