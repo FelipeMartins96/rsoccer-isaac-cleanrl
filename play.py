@@ -104,24 +104,24 @@ def get_team(algo, path=None):
 
 BASELINE_TEAMS = {
     'ppo-sa': {
-        '10': get_team('ppo-sa', 'base_nets/exp000_ppo-sa_10/agent.pt'),
-        '20': get_team('ppo-sa', 'base_nets/exp000_ppo-sa_20/agent.pt'),
-        '30': get_team('ppo-sa', 'base_nets/exp000_ppo-sa_30/agent.pt'),
+        '10': get_team('ppo-sa', 'exp000/ppo-sa/agent-0apumq20.pt'),
+        '20': get_team('ppo-sa', 'exp000/ppo-sa/agent-g7gguvub.pt'),
+        '30': get_team('ppo-sa', 'exp000/ppo-sa/agent-x98y8vhs.pt'),
     },
     'ppo-sa-x3': {
-        '10': get_team('ppo-sa-x3', 'base_nets/exp000_ppo-sa_10/agent.pt'),
-        '20': get_team('ppo-sa-x3', 'base_nets/exp000_ppo-sa_20/agent.pt'),
-        '30': get_team('ppo-sa-x3', 'base_nets/exp000_ppo-sa_30/agent.pt'),
+        '10': get_team('ppo-sa-x3', 'exp000/ppo-sa/agent-0apumq20.pt'),
+        '20': get_team('ppo-sa-x3', 'exp000/ppo-sa/agent-g7gguvub.pt'),
+        '30': get_team('ppo-sa-x3', 'exp000/ppo-sa/agent-x98y8vhs.pt'),
     },
     'ppo-cma': {
-        '10': get_team('ppo-cma', 'base_nets/exp000_ppo-cma_10/agent.pt'),
-        '20': get_team('ppo-cma', 'base_nets/exp000_ppo-cma_20/agent.pt'),
-        '30': get_team('ppo-cma', 'base_nets/exp000_ppo-cma_30/agent.pt'),
+        '10': get_team('ppo-cma', 'exp000/ppo-cma/agent-0m1lx8tj.pt'),
+        '20': get_team('ppo-cma', 'exp000/ppo-cma/agent-yp5299oc.pt'),
+        '30': get_team('ppo-cma', 'exp000/ppo-cma/agent-a8ogk7j9.pt'),
     },
     'ppo-dma': {
-        '10': get_team('ppo-dma', 'base_nets/exp000_ppo-dma_10/agent.pt'),
-        '20': get_team('ppo-dma', 'base_nets/exp000_ppo-dma_20/agent.pt'),
-        '30': get_team('ppo-dma', 'base_nets/exp000_ppo-dma_30/agent.pt'),
+        '10': get_team('ppo-dma', 'exp000/ppo-dma/agent-mgeahqxu.pt'),
+        '20': get_team('ppo-dma', 'exp000/ppo-dma/agent-qzy50f6t.pt'),
+        '30': get_team('ppo-dma', 'exp000/ppo-dma/agent-ba6h8l2t.pt'),
     },
     'zero': {'00': get_team('zero')},
     'ou': {'00': get_team('ou')},

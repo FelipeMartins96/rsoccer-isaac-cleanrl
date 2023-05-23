@@ -75,10 +75,13 @@ if __name__ == "__main__":
             total_score += rews
             total_len += lens
             total_count += 1
-            run.log({f"Media/{team}/{seed}": wandb.Video(f"{save_path}/val_{team}_{seed}/video.000-step-0.mp4")})
+            if team == 'zero' or team == 'ou':
+                run.log({f"Media/Deterministic/{team}": wandb.Video(f"{save_path}/val_{team}_{seed}/video.000-step-0.mp4")})
+            else:
+                run.log({f"Media/{team}/{seed}": wandb.Video(f"{save_path}/val_{team}_{seed}/video.000-step-0.mp4")})
         run.summary[f"Score/{team}"] = team_score / len(BASELINE_TEAMS[team])
         run.summary[f"Length/{team}"] = team_len / len(BASELINE_TEAMS[team])
     run.summary["Score/Mean"] = total_score / total_count
-    run.summary["Score/Mean"] = total_len / total_count
+    run.summary["Length/Mean"] = total_len / total_count
 
     wandb.finish()
