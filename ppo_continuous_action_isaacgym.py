@@ -203,7 +203,6 @@ if __name__ == "__main__":
             save_code=True,
             notes=args.wandb_notes,
         )
-    breakpoint()
     writer = SummaryWriter(f"{save_path}/{wandb.run.id if args.track else 'non-tracked'}")
     writer.add_text(
         "hyperparameters",
