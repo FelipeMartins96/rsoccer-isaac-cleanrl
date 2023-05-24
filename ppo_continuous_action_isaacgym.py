@@ -186,7 +186,7 @@ if __name__ == "__main__":
         args.wandb_project_name = "test-cleanrl-rsoccer"
         args.total_timesteps = 1000000
 
-    run_name = f"ppo-{args.env_id}"
+    run_name = f"{args.exp_name}-{args.env_id}"
     save_path = f"runs/{args.exp_name}/{run_name}"
 
     if args.track:
@@ -195,7 +195,7 @@ if __name__ == "__main__":
         wandb.init(
             project=args.wandb_project_name,
             entity=args.wandb_entity,
-            group=args.exp_name,
+            group=run_name,
             sync_tensorboard=True,
             config=vars(args),
             name=run_name,
