@@ -32,6 +32,7 @@ import os
 import random
 import time
 from distutils.util import strtobool
+from collections import OrderedDict
 
 import gym
 import isaacgym  # noqa
@@ -121,7 +122,8 @@ def parse_args():
     parser.add_argument("--no-move", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     parser.add_argument("--no-energy", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     parser.add_argument("--speed-factor", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
-    
+    parser.add_argument("--hidden-layers", type=float, default=3)
+    parser.add_argument("--hidden-units", type=float, default=512)
     args = parser.parse_args()
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
@@ -136,31 +138,29 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
 
 
 class Agent(nn.Module):
-    def __init__(self, envs):
+    def __init__(self, n_obs, n_acts, h_units, h_layers):
         super().__init__()
+        layers = [
+            ('f_l', layer_init(nn.Linear(n_obs, h_units))),
+            ('f_t', nn.Tanh()),
+        ]
+        for i in range(h_layers):
+            layers += [
+                (f'h_l{i}', layer_init(nn.Linear(h_units, h_units))),
+                (f'h_t{i}', nn.Tanh()),
+            ]
+
         self.critic = nn.Sequential(
-            layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 256)),
-            nn.Tanh(),
-            layer_init(nn.Linear(256, 512)),
-            nn.Tanh(),
-            layer_init(nn.Linear(512, 512)),
-            nn.Tanh(),
-            layer_init(nn.Linear(512, 256)),
-            nn.Tanh(),
-            layer_init(nn.Linear(256, 1), std=1.0),
+            OrderedDict(
+                layers + [('last_l', layer_init(nn.Linear(h_units, 1), std=1.0))]
+            )
         )
         self.actor_mean = nn.Sequential(
-            layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 256)),
-            nn.Tanh(),
-            layer_init(nn.Linear(256, 512)),
-            nn.Tanh(),
-            layer_init(nn.Linear(512, 512)),
-            nn.Tanh(),
-            layer_init(nn.Linear(512, 256)),
-            nn.Tanh(),
-            layer_init(nn.Linear(256, np.prod(envs.single_action_space.shape)), std=0.01),
+            OrderedDict(
+                layers + [('last_l', layer_init(nn.Linear(h_units, n_acts), std=0.01))]
+            )
         )
-        self.actor_logstd = nn.Parameter(torch.zeros(1, np.prod(envs.single_action_space.shape)))
+        self.actor_logstd = nn.Parameter(torch.zeros(1, n_acts))
 
     def get_value(self, x):
         return self.critic(x)
@@ -172,7 +172,12 @@ class Agent(nn.Module):
         probs = Normal(action_mean, action_std)
         if action is None:
             action = probs.sample()
-        return action, probs.log_prob(action).sum(1), probs.entropy().sum(1), self.critic(x)
+        return (
+            action,
+            probs.log_prob(action).sum(1),
+            probs.entropy().sum(1),
+            self.critic(x),
+        )
 
 
 class ExtractObsWrapper(gym.ObservationWrapper):
@@ -243,7 +248,12 @@ if __name__ == "__main__":
     envs.single_observation_space = envs.observation_space
     assert isinstance(envs.single_action_space, gym.spaces.Box), "only continuous action space is supported"
 
-    agent = Agent(envs).to(device)
+    agent = Agent(
+        n_obs=np.array(envs.single_observation_space.shape).prod(),
+        n_acts=np.prod(envs.single_action_space.shape),
+        h_units=args.hidden_units,
+        h_layers=args.hidden_layers,
+    ).to(device)
     optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
 
     # ALGO Logic: Storage setup
@@ -392,7 +402,8 @@ if __name__ == "__main__":
 
         # TRY NOT TO MODIFY: record rewards for plotting purposes
         writer.add_scalar("losses/learning_rate", optimizer.param_groups[0]["lr"], global_step)
-        writer.add_scalar("losses/speed_factor", envs.speed_factor, global_step)
+        if args.hierchical:
+            writer.add_scalar("losses/speed_factor", envs.speed_factor, global_step)
         writer.add_scalar("losses/value_loss", v_loss.item(), global_step)
         writer.add_scalar("losses/policy_loss", pg_loss.item(), global_step)
         writer.add_scalar("losses/entropy", entropy_loss.item(), global_step)
@@ -404,5 +415,14 @@ if __name__ == "__main__":
 
     # Save Model
     if args.track:
-        torch.save(agent.state_dict(), f"{save_path}/agent-{wandb.run.id}.pt")
+        save_dict = OrderedDict([
+            ("env_id", args.env_id),
+            ("state_dict", agent.state_dict()),
+            ('n_obs', np.array(envs.single_observation_space.shape).prod()),
+            ('n_acts', np.prod(envs.single_action_space.shape)),
+            ('h_units', args.hidden_units),
+            ('h_layers', args.hidden_layers),
+            ('run_id', wandb.run.id),
+        ])
+        torch.save(save_dict, f"{save_path}/agent-{wandb.run.id}.pt")
         wandb.save(f"{save_path}/agent-{wandb.run.id}.pt")

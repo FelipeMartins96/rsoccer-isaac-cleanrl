@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from collections import namedtuple
 import numpy as np
 
+from envs.wrappers import OLD_Agent
 
 def random_ou(prev):
     ou_theta = 0.1
@@ -43,9 +44,20 @@ class TeamOU(Team):
 
 
 class TeamAgent(Team):
-    def __init__(self, path, env_d):
-        self.agent = Agent(env_d).to('cuda:0')
-        self.agent.load_state_dict(torch.load(path))
+    def __init__(self, path, env_d, is_old):
+        # TODO: remove is old
+        agent_dict = torch.load(path)
+        if is_old:
+            self.agent = OLD_Agent(env_d).to('cuda:0')
+            self.agent.load_state_dict(agent_dict)
+        else:
+            self.agent = Agent(
+                n_obs=agent_dict['n_obs'],
+                n_acts=agent_dict['n_acts'],
+                h_units=agent_dict['h_units'],
+                h_layers=agent_dict['h_layers'],
+            ).to('cuda:0')
+            self.agent.load_state_dict(agent_dict['state_dict'])
 
 
 class TeamSA(TeamAgent):
@@ -92,13 +104,21 @@ class TeamAgent_HRL(Team):
             'dummy_env', ['single_observation_space', 'single_action_space']
         )
         self.last_manager_acts = None
-        self.manager = Agent(env_d).to('cuda:0')
-        self.manager.load_state_dict(torch.load(path))
+        agent_dict = torch.load(path)
+        self.manager = Agent(
+            n_obs=agent_dict['n_obs'],
+            n_acts=agent_dict['n_acts'],
+            h_units=agent_dict['h_units'],
+            h_layers=agent_dict['h_layers'],
+        ).to('cuda:0')
+        self.manager.load_state_dict(agent_dict['state_dict'])
+
         env_d = dummy_env(
             single_observation_space=gym.spaces.Box(-np.inf, np.inf, (11,)),
             single_action_space=gym.spaces.Box(-1.0, 1.0, (2,)),
         )
-        self.worker = Agent(env_d).to('cuda:0')
+        # TODO: Adaptar para novos param agent
+        self.worker = OLD_Agent(env_d).to('cuda:0')
         self.worker.load_state_dict(torch.load('1-agent.pt'))
         self.field_size = torch.tensor(
             [0.85, 0.65], device='cuda:0', dtype=torch.float32, requires_grad=False
@@ -222,7 +242,7 @@ def get_team(algo, path=None, hrl=False):
             single_action_space=gym.spaces.Box(-1.0, 1.0, (2,)),
         )
         if not hrl:
-            return TeamSA(path, env_d)
+            return TeamSA(path, env_d, is_old=True) # TODO: REMOVE IS OLD
         else:
             return TeamSA_HRL(path, env_d)
     elif algo == 'ppo-sa-x3':
@@ -231,7 +251,7 @@ def get_team(algo, path=None, hrl=False):
             single_action_space=gym.spaces.Box(-1.0, 1.0, (2,)),
         )
         if not hrl:
-            return TeamDMA(path, env_d)
+            return TeamDMA(path, env_d, is_old=True) # TODO: REMOVE IS OLD
         else:
             return TeamDMA_HRL(path, env_d)
     elif algo == 'ppo-dma':
@@ -240,7 +260,7 @@ def get_team(algo, path=None, hrl=False):
             single_action_space=gym.spaces.Box(-1.0, 1.0, (2,)),
         )
         if not hrl:
-            return TeamDMA(path, env_d)
+            return TeamDMA(path, env_d, is_old=True) # TODO: REMOVE IS OLD
         else:
             return TeamDMA_HRL(path, env_d)
     elif algo == 'ppo-cma':
@@ -249,7 +269,7 @@ def get_team(algo, path=None, hrl=False):
             single_action_space=gym.spaces.Box(-1.0, 1.0, (6,)),
         )
         if not hrl:
-            return TeamCMA(path, env_d)
+            return TeamCMA(path, env_d, is_old=True) # TODO: REMOVE IS OLD
         else:
             return TeamCMA_HRL(path, env_d)
     elif algo == 'zero':
