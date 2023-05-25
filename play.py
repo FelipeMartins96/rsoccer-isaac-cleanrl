@@ -64,11 +64,45 @@ class TeamDMA(TeamAgent):
         act[:] = self.agent.get_action_and_value(obs)[0]
 
 
+from isaacgym.torch_utils import get_euler_xyz
+
+
+@torch.jit.script
+def compute_goto_obs(tgt_pos, r_pos, r_vel, r_quats, r_w, r_acts):
+    # type: (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor) -> Tensor
+    rbt_angles = get_euler_xyz(r_quats.reshape(-1, 4))[2].view(-1, 3, 1)
+    obs = torch.cat(
+        (
+            tgt_pos,
+            r_pos,
+            r_vel,
+            torch.cos(rbt_angles),
+            torch.sin(rbt_angles),
+            r_w,
+            r_acts,
+        ),
+        dim=-1,
+    ).squeeze()
+    return obs
+
+
 class TeamAgent_HRL(Team):
     def __init__(self, path, env_d):
+        dummy_env = namedtuple(
+            'dummy_env', ['single_observation_space', 'single_action_space']
+        )
         self.last_manager_acts = None
-        self.agent = Agent(env_d).to('cuda:0')
-        self.agent.load_state_dict(torch.load(path))
+        self.manager = Agent(env_d).to('cuda:0')
+        self.manager.load_state_dict(torch.load(path))
+        env_d = dummy_env(
+            single_observation_space=gym.spaces.Box(-np.inf, np.inf, (11,)),
+            single_action_space=gym.spaces.Box(-1.0, 1.0, (2,)),
+        )
+        self.worker = Agent(env_d).to('cuda:0')
+        self.worker.load_state_dict(torch.load('1-agent.pt'))
+        self.field_size = torch.tensor(
+            [0.85, 0.65], device='cuda:0', dtype=torch.float32, requires_grad=False
+        )
 
 
 class TeamSA_HRL(TeamAgent_HRL):
@@ -77,19 +111,103 @@ class TeamSA_HRL(TeamAgent_HRL):
         act[:] = random_ou(act)
 
         # Reset last manager actions if needed
+        if self.last_manager_acts is None:
+            self.last_manager_acts = torch.zeros_like(act)
+        else:
+            env_ids = envs.reset_buf.nonzero(as_tuple=False).squeeze(-1)
+            self.last_manager_acts[env_ids] *= 0
 
         # Infer manager actions, with clamping
-        act[:, 0, :] = self.agent.get_action_and_value(obs[:, 0, :])[0]
+        manager_acts = self.manager.get_action_and_value(obs)[0]
+        # Clamp and scale manager acts
+        manager_acts = torch.clamp(manager_acts, -1.0, 1.0) * self.field_size
+        # Render manager acts
+        if envs.view is not None:
+            envs.view.set_targets(manager_acts[0, 0:1])
+
+        # Get worker obs
+        worker_obs = compute_goto_obs(
+            manager_acts,
+            envs.robots_pos[:, 0],
+            envs.robots_vel[:, 0],
+            envs.robots_quats[:, 0],
+            envs.robots_ang_vel[:, 0],
+            self.last_manager_acts,
+        )
+
+        # Infer worker actions
+        act[:, 0] = self.worker.get_action_and_value(worker_obs)[0][:, 0]
+        self.last_manager_acts[:] = manager_acts
 
 
 class TeamCMA_HRL(TeamAgent_HRL):
     def __call__(self, act, obs, envs):
-        act[:] = self.agent.get_action_and_value(obs[:, 0, :])[0].view(-1, 3, 2)
+        # Fill with random actions
+        act[:] = random_ou(act)
+
+        # Reset last manager actions if needed
+        if self.last_manager_acts is None:
+            self.last_manager_acts = torch.zeros_like(act)
+        else:
+            env_ids = envs.reset_buf.nonzero(as_tuple=False).squeeze(-1)
+            self.last_manager_acts[env_ids] *= 0
+
+        # Infer manager actions, with clamping
+        manager_acts = self.manager.get_action_and_value(obs[:, 0])[0].view(-1, 3, 2)
+        # Clamp and scale manager acts
+        manager_acts = torch.clamp(manager_acts, -1.0, 1.0) * self.field_size
+        # Render manager acts
+        if envs.view is not None:
+            envs.view.set_targets(manager_acts[0])
+
+        # Get worker obs
+        worker_obs = compute_goto_obs(
+            manager_acts,
+            envs.robots_pos[:, 0],
+            envs.robots_vel[:, 0],
+            envs.robots_quats[:, 0],
+            envs.robots_ang_vel[:, 0],
+            self.last_manager_acts,
+        )
+
+        # Infer worker actions
+        act[:] = self.worker.get_action_and_value(worker_obs)[0]
+        self.last_manager_acts[:] = manager_acts
 
 
 class TeamDMA_HRL(TeamAgent_HRL):
     def __call__(self, act, obs, envs):
-        act[:] = self.agent.get_action_and_value(obs)[0]
+        # Fill with random actions
+        act[:] = random_ou(act)
+
+        # Reset last manager actions if needed
+        if self.last_manager_acts is None:
+            self.last_manager_acts = torch.zeros_like(act)
+        else:
+            env_ids = envs.reset_buf.nonzero(as_tuple=False).squeeze(-1)
+            self.last_manager_acts[env_ids] *= 0
+
+        # Infer manager actions, with clamping
+        manager_acts = self.manager.get_action_and_value(obs)[0]
+        # Clamp and scale manager acts
+        manager_acts = torch.clamp(manager_acts, -1.0, 1.0) * self.field_size
+        # Render manager acts
+        if envs.view is not None:
+            envs.view.set_targets(manager_acts[0])
+
+        # Get worker obs
+        worker_obs = compute_goto_obs(
+            manager_acts,
+            envs.robots_pos[:, 0],
+            envs.robots_vel[:, 0],
+            envs.robots_quats[:, 0],
+            envs.robots_ang_vel[:, 0],
+            self.last_manager_acts,
+        )
+
+        # Infer worker actions
+        act[:] = self.worker.get_action_and_value(worker_obs)[0]
+        self.last_manager_acts[:] = manager_acts
 
 
 def get_team(algo, path=None, hrl=False):
@@ -103,7 +221,7 @@ def get_team(algo, path=None, hrl=False):
             single_observation_space=gym.spaces.Box(-np.inf, np.inf, (52,)),
             single_action_space=gym.spaces.Box(-1.0, 1.0, (2,)),
         )
-        if hrl:
+        if not hrl:
             return TeamSA(path, env_d)
         else:
             return TeamSA_HRL(path, env_d)
@@ -112,7 +230,7 @@ def get_team(algo, path=None, hrl=False):
             single_observation_space=gym.spaces.Box(-np.inf, np.inf, (52,)),
             single_action_space=gym.spaces.Box(-1.0, 1.0, (2,)),
         )
-        if hrl:
+        if not hrl:
             return TeamDMA(path, env_d)
         else:
             return TeamDMA_HRL(path, env_d)
@@ -121,7 +239,7 @@ def get_team(algo, path=None, hrl=False):
             single_observation_space=gym.spaces.Box(-np.inf, np.inf, (52,)),
             single_action_space=gym.spaces.Box(-1.0, 1.0, (2,)),
         )
-        if hrl:
+        if not hrl:
             return TeamDMA(path, env_d)
         else:
             return TeamDMA_HRL(path, env_d)
@@ -130,7 +248,7 @@ def get_team(algo, path=None, hrl=False):
             single_observation_space=gym.spaces.Box(-np.inf, np.inf, (52,)),
             single_action_space=gym.spaces.Box(-1.0, 1.0, (6,)),
         )
-        if hrl:
+        if not hrl:
             return TeamCMA(path, env_d)
         else:
             return TeamCMA_HRL(path, env_d)
@@ -190,9 +308,9 @@ def play_matches(envs, blue_team, yellow_team, n_matches, video_path=None):
     )
     obs = envs.reset()
     while ep_count < n_matches:
-        blue_team(action_buf[:, 0], obs[:, 0])
+        blue_team(action_buf[:, 0], obs[:, 0], envs)
         # print(act)
-        yellow_team(action_buf[:, 1], obs[:, 1])
+        yellow_team(action_buf[:, 1], obs[:, 1], envs)
         obs, rew, dones, info = envs.step(action_buf)
 
         env_ids = dones[:1065].nonzero(as_tuple=False).squeeze(-1)

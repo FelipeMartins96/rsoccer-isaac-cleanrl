@@ -213,7 +213,6 @@ class VSSGoTo(VecTask):
         
 
     def reset_dones(self):
-        # TODO: include random pos inside goal 
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
 
         if len(env_ids) > 0:

@@ -42,7 +42,6 @@ if __name__ == "__main__":
 
     api = wandb.Api()
     bt_run = api.run(f"ppo-isaac/{args.run_id}")
-    assert not bt_run.config['hierarchical'] #TODO hierarchical validation
     
     config = dict(bt_run.config)
     save_path = f"runs/validation/{config['exp_name']}/{args.env_id}/{args.run_id}"
