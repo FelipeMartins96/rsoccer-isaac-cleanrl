@@ -31,28 +31,28 @@ if __name__ == "__main__":
     ALGO = args.algo
 
     with initialize(config_path="envs"):
-        # cfg = compose(config_name="vss_goto")
-        cfg = compose(config_name="vss")
+        cfg = compose(config_name="vss_goto")
+        # cfg = compose(config_name="vss")
     cfg = omegaconf_to_dict(cfg)
 
     cfg['env']['numEnvs'] = 3
-    # envs = VSSGoTo(
-    envs = VSS(
+    envs = VSSGoTo(
+    # envs = VSS(
         cfg=cfg,
         rl_device="cuda:0",
         sim_device="cuda:0",
         graphics_device_id=0,
-        headless=True,
+        headless=False,
         virtual_screen_capture=False,
-        force_render=False,
+        force_render=True,
     )
-    envs = HRL(envs)
-    envs = SingleAgent(envs)
+    # envs = HRL(envs)
+    # envs = SingleAgent(envs)
     # envs = CMA(envs)
     # envs = DMA(envs)
 
     actions = torch.ones((envs.num_environments,) + envs.action_space.shape, device=envs.rl_device) * 2
     while True:
-        envs.set_speed_factor(0)
+        # envs.set_speed_factor(0)
         envs.step(actions)
         envs.render()

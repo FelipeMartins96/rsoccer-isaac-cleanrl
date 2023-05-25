@@ -25,6 +25,7 @@ TEAM_COLORS = [BLUE_COLOR, YELLOW_COLOR]
 ID_COLORS = [RED_COLOR, GREEN_COLOR, PINK_COLOR]
 NUM_TEAMS = 1
 NUM_ROBOTS = 1
+NUM_OBSTACLES = 3
 
 
 class VSSGoTo(VecTask):
@@ -73,11 +74,12 @@ class VSSGoTo(VecTask):
     def _acquire_tensors(self):
         """Acquire and wrap tensors. Create views."""
         n_field_actors = 8  # 2 side walls, 4 end walls, 2 goal walls
-        total_robots = NUM_ROBOTS * NUM_TEAMS
-        num_actors = total_robots * 2 + n_field_actors
-        self.s_robots = slice(0, total_robots)
-        self.s_tgts = slice(total_robots, total_robots+total_robots)
-
+        num_targets = NUM_ROBOTS
+        total_robots = NUM_ROBOTS * NUM_TEAMS + NUM_OBSTACLES
+        num_actors = total_robots + num_targets + n_field_actors
+        self.s_robots = slice(0, NUM_ROBOTS)
+        self.s_tgts = slice(NUM_ROBOTS, NUM_ROBOTS+num_targets)
+        self.s_obstacles = slice(NUM_ROBOTS+num_targets, NUM_ROBOTS+num_targets+NUM_OBSTACLES)
         _root_state = self.gym.acquire_actor_root_state_tensor(self.sim)
 
         self.root_state = gymtorch.wrap_tensor(_root_state).view(
@@ -105,6 +107,7 @@ class VSSGoTo(VecTask):
             device=self.device,
             requires_grad=False,
         )
+        self.robot_dof = self.dof_velocity_buf[:, 0:1]
         self.field_scale = torch.tensor(
             [self.field_width, self.field_height],
             dtype=torch.float,
@@ -144,7 +147,7 @@ class VSSGoTo(VecTask):
         # reset progress_buf for envs reseted on previous step
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
         self.progress_buf[env_ids] = 0
-        self.dof_velocity_buf[:] = _actions.to(self.device).unsqueeze(1)
+        self.robot_dof[:] = _actions.to(self.device).unsqueeze(1)
 
         act = self.dof_velocity_buf * self.robot_max_wheel_rad_s
         self.gym.set_dof_velocity_target_tensor(self.sim, gymtorch.unwrap_tensor(act))
@@ -169,7 +172,7 @@ class VSSGoTo(VecTask):
             self.robots_vel,
             self.robots_quats,
             self.robots_ang_vel,
-            self.dof_velocity_buf
+            self.robot_dof
         )
 
     def compute_rewards_and_dones(self):
@@ -215,7 +218,6 @@ class VSSGoTo(VecTask):
     def reset_dones(self):
         # TODO: include random pos inside goal 
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
-
         if len(env_ids) > 0:
             # Reset env state
             self.root_state[env_ids] = self.env_reset_root_state
@@ -310,6 +312,10 @@ class VSSGoTo(VecTask):
             for team in [BLUE_TEAM]:
                 for robot in [RED_ROBOT]:
                     self._add_target(_field, field_idx, team, robot)
+
+            for i in range(NUM_OBSTACLES):
+                self._add_robot(_field, field_idx, YELLOW_TEAM, i)
+
 
             self._add_field(_field, field_idx)
 
