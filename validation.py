@@ -59,7 +59,7 @@ if __name__ == "__main__":
         config=config,
     )
 
-    blue_team = get_team(run_name, args.model_path)
+    blue_team = get_team(run_name, args.model_path, bt_run.config['hierarchical'])
     total_score = 0
     total_len = 0
     total_count = 0

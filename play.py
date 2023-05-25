@@ -28,17 +28,17 @@ class Team(ABC):
         pass
 
     @abstractmethod
-    def __call__(self, act, obs):
+    def __call__(self, act, obs, envs):
         pass
 
 
 class TeamZero(Team):
-    def __call__(self, act, obs):
+    def __call__(self, act, obs, envs):
         act[:] *= 0
 
 
 class TeamOU(Team):
-    def __call__(self, act, obs):
+    def __call__(self, act, obs, envs):
         act[:] = random_ou(act)
 
 
@@ -49,22 +49,50 @@ class TeamAgent(Team):
 
 
 class TeamSA(TeamAgent):
-    def __call__(self, act, obs):
+    def __call__(self, act, obs, envs):
         act[:] = random_ou(act)
         act[:, 0, :] = self.agent.get_action_and_value(obs[:, 0, :])[0]
 
 
 class TeamCMA(TeamAgent):
-    def __call__(self, act, obs):
+    def __call__(self, act, obs, envs):
         act[:] = self.agent.get_action_and_value(obs[:, 0, :])[0].view(-1, 3, 2)
 
 
 class TeamDMA(TeamAgent):
-    def __call__(self, act, obs):
+    def __call__(self, act, obs, envs):
         act[:] = self.agent.get_action_and_value(obs)[0]
 
 
-def get_team(algo, path=None):
+class TeamAgent_HRL(Team):
+    def __init__(self, path, env_d):
+        self.last_manager_acts = None
+        self.agent = Agent(env_d).to('cuda:0')
+        self.agent.load_state_dict(torch.load(path))
+
+
+class TeamSA_HRL(TeamAgent_HRL):
+    def __call__(self, act, obs, envs):
+        # Fill with random actions
+        act[:] = random_ou(act)
+
+        # Reset last manager actions if needed
+
+        # Infer manager actions, with clamping
+        act[:, 0, :] = self.agent.get_action_and_value(obs[:, 0, :])[0]
+
+
+class TeamCMA_HRL(TeamAgent_HRL):
+    def __call__(self, act, obs, envs):
+        act[:] = self.agent.get_action_and_value(obs[:, 0, :])[0].view(-1, 3, 2)
+
+
+class TeamDMA_HRL(TeamAgent_HRL):
+    def __call__(self, act, obs, envs):
+        act[:] = self.agent.get_action_and_value(obs)[0]
+
+
+def get_team(algo, path=None, hrl=False):
     # create dummy env named tuple with single observation and action spaces
     dummy_env = namedtuple(
         'dummy_env', ['single_observation_space', 'single_action_space']
@@ -75,25 +103,37 @@ def get_team(algo, path=None):
             single_observation_space=gym.spaces.Box(-np.inf, np.inf, (52,)),
             single_action_space=gym.spaces.Box(-1.0, 1.0, (2,)),
         )
-        return TeamSA(path, env_d)
+        if hrl:
+            return TeamSA(path, env_d)
+        else:
+            return TeamSA_HRL(path, env_d)
     elif algo == 'ppo-sa-x3':
         env_d = dummy_env(
             single_observation_space=gym.spaces.Box(-np.inf, np.inf, (52,)),
             single_action_space=gym.spaces.Box(-1.0, 1.0, (2,)),
         )
-        return TeamDMA(path, env_d)
+        if hrl:
+            return TeamDMA(path, env_d)
+        else:
+            return TeamDMA_HRL(path, env_d)
     elif algo == 'ppo-dma':
         env_d = dummy_env(
             single_observation_space=gym.spaces.Box(-np.inf, np.inf, (52,)),
             single_action_space=gym.spaces.Box(-1.0, 1.0, (2,)),
         )
-        return TeamDMA(path, env_d)
+        if hrl:
+            return TeamDMA(path, env_d)
+        else:
+            return TeamDMA_HRL(path, env_d)
     elif algo == 'ppo-cma':
         env_d = dummy_env(
             single_observation_space=gym.spaces.Box(-np.inf, np.inf, (52,)),
             single_action_space=gym.spaces.Box(-1.0, 1.0, (6,)),
         )
-        return TeamCMA(path, env_d)
+        if hrl:
+            return TeamCMA(path, env_d)
+        else:
+            return TeamCMA_HRL(path, env_d)
     elif algo == 'zero':
         return TeamZero()
     elif algo == 'ou':
@@ -138,7 +178,7 @@ def play_matches(envs, blue_team, yellow_team, n_matches, video_path=None):
             video_path,
             step_trigger=lambda step: step == 0,
             video_length=300,
-            name_prefix="video.000"
+            name_prefix="video.000",
         )
     envs = ExtractObsWrapper(envs)
 
