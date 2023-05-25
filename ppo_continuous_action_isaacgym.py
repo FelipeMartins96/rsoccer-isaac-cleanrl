@@ -68,9 +68,9 @@ def parse_args():
         help="whether to capture videos of the agent performances (check out `videos` folder)")
 
     # Algorithm specific arguments
-    parser.add_argument("--env-id", type=str, default="sa",
+    parser.add_argument("--env-id", type=str, default="goto",
         help="the id of the environment")
-    parser.add_argument("--total-timesteps", type=int, default=1000000000,
+    parser.add_argument("--total-timesteps", type=int, default=100000000,
         help="total timesteps of the experiments")
     parser.add_argument("--learning-rate", type=float, default=0.001,
         help="the learning rate of the optimizer")
@@ -114,7 +114,7 @@ def parse_args():
     parser.add_argument("--test", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Toggle test runs, save to test path.")
     
-    parser.add_argument("--terminal-rw", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
+    parser.add_argument("--terminal-rw", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True)
     parser.add_argument("--check-angle", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     parser.add_argument("--check-speed", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     parser.add_argument("--hierarchical", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
@@ -392,7 +392,7 @@ if __name__ == "__main__":
 
         # TRY NOT TO MODIFY: record rewards for plotting purposes
         writer.add_scalar("losses/learning_rate", optimizer.param_groups[0]["lr"], global_step)
-        writer.add_scalar("losses/speed_factor", envs.speed_factor, global_step)
+        # writer.add_scalar("losses/speed_factor", envs.speed_factor, global_step)
         writer.add_scalar("losses/value_loss", v_loss.item(), global_step)
         writer.add_scalar("losses/policy_loss", pg_loss.item(), global_step)
         writer.add_scalar("losses/entropy", entropy_loss.item(), global_step)
