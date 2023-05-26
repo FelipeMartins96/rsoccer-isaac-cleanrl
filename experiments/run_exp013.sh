@@ -1,6 +1,6 @@
-EXP_NAME="exp002"
-EXP_NOTES="no move and no energy reward"
-EXP_ARGS="--no-move --no-energy"
+EXP_NAME="exp013"
+EXP_NOTES=""
+EXP_ARGS="--hidden-layers 3 --hidden-units 256"
 case $1 in
 0) xvfb-run -a python ppo_continuous_action_isaacgym.py --exp-name $EXP_NAME --wandb-notes="$EXP_NOTES" $EXP_ARGS --env-id sa  --seed 10 --track --capture-video;;
 1) xvfb-run -a python ppo_continuous_action_isaacgym.py --exp-name $EXP_NAME --wandb-notes="$EXP_NOTES" $EXP_ARGS --env-id cma --seed 10 --track --capture-video;;

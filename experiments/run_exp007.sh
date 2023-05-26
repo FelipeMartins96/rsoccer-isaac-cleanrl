@@ -1,6 +1,6 @@
 EXP_NAME="exp007"
-EXP_NOTES=""
-EXP_ARGS="--hidden-layers 9 --hidden-units 1024"
+EXP_NOTES="speed factor with no energy reward"
+EXP_ARGS="--speed-factor --no-energy"
 case $1 in
 0) xvfb-run -a python ppo_continuous_action_isaacgym.py --exp-name $EXP_NAME --wandb-notes="$EXP_NOTES" $EXP_ARGS --env-id sa  --seed 10 --track --capture-video;;
 1) xvfb-run -a python ppo_continuous_action_isaacgym.py --exp-name $EXP_NAME --wandb-notes="$EXP_NOTES" $EXP_ARGS --env-id cma --seed 10 --track --capture-video;;
