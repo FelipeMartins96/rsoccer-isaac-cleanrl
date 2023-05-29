@@ -230,7 +230,7 @@ class TeamDMA_HRL(TeamAgent_HRL):
         self.last_manager_acts[:] = manager_acts
 
 
-def get_team(algo, path=None, hrl=False):
+def get_team(algo, path=None, hrl=False, is_old=False):
     # create dummy env named tuple with single observation and action spaces
     dummy_env = namedtuple(
         'dummy_env', ['single_observation_space', 'single_action_space']
@@ -242,7 +242,7 @@ def get_team(algo, path=None, hrl=False):
             single_action_space=gym.spaces.Box(-1.0, 1.0, (2,)),
         )
         if not hrl:
-            return TeamSA(path, env_d, is_old=True) # TODO: REMOVE IS OLD
+            return TeamSA(path, env_d, is_old=is_old) # TODO: REMOVE IS OLD
         else:
             return TeamSA_HRL(path, env_d)
     elif algo == 'ppo-sa-x3':
@@ -251,7 +251,7 @@ def get_team(algo, path=None, hrl=False):
             single_action_space=gym.spaces.Box(-1.0, 1.0, (2,)),
         )
         if not hrl:
-            return TeamDMA(path, env_d, is_old=True) # TODO: REMOVE IS OLD
+            return TeamDMA(path, env_d, is_old=is_old) # TODO: REMOVE IS OLD
         else:
             return TeamDMA_HRL(path, env_d)
     elif algo == 'ppo-dma':
@@ -260,7 +260,7 @@ def get_team(algo, path=None, hrl=False):
             single_action_space=gym.spaces.Box(-1.0, 1.0, (2,)),
         )
         if not hrl:
-            return TeamDMA(path, env_d, is_old=True) # TODO: REMOVE IS OLD
+            return TeamDMA(path, env_d, is_old=is_old) # TODO: REMOVE IS OLD
         else:
             return TeamDMA_HRL(path, env_d)
     elif algo == 'ppo-cma':
@@ -269,7 +269,7 @@ def get_team(algo, path=None, hrl=False):
             single_action_space=gym.spaces.Box(-1.0, 1.0, (6,)),
         )
         if not hrl:
-            return TeamCMA(path, env_d, is_old=True) # TODO: REMOVE IS OLD
+            return TeamCMA(path, env_d, is_old=is_old) # TODO: REMOVE IS OLD
         else:
             return TeamCMA_HRL(path, env_d)
     elif algo == 'zero':
@@ -282,24 +282,24 @@ def get_team(algo, path=None, hrl=False):
 
 BASELINE_TEAMS = {
     'ppo-sa': {
-        '10': get_team('ppo-sa', 'exp000/ppo-sa/agent-0apumq20.pt'),
-        '20': get_team('ppo-sa', 'exp000/ppo-sa/agent-g7gguvub.pt'),
-        '30': get_team('ppo-sa', 'exp000/ppo-sa/agent-x98y8vhs.pt'),
+        '10': get_team('ppo-sa', 'exp000/ppo-sa/agent-0apumq20.pt', is_old=True), # TODO: remove is old
+        '20': get_team('ppo-sa', 'exp000/ppo-sa/agent-g7gguvub.pt', is_old=True), # TODO: remove is old
+        '30': get_team('ppo-sa', 'exp000/ppo-sa/agent-x98y8vhs.pt', is_old=True), # TODO: remove is old
     },
     'ppo-sa-x3': {
-        '10': get_team('ppo-sa-x3', 'exp000/ppo-sa/agent-0apumq20.pt'),
-        '20': get_team('ppo-sa-x3', 'exp000/ppo-sa/agent-g7gguvub.pt'),
-        '30': get_team('ppo-sa-x3', 'exp000/ppo-sa/agent-x98y8vhs.pt'),
+        '10': get_team('ppo-sa-x3', 'exp000/ppo-sa/agent-0apumq20.pt', is_old=True), # TODO: remove is old
+        '20': get_team('ppo-sa-x3', 'exp000/ppo-sa/agent-g7gguvub.pt', is_old=True), # TODO: remove is old
+        '30': get_team('ppo-sa-x3', 'exp000/ppo-sa/agent-x98y8vhs.pt', is_old=True), # TODO: remove is old
     },
     'ppo-cma': {
-        '10': get_team('ppo-cma', 'exp000/ppo-cma/agent-0m1lx8tj.pt'),
-        '20': get_team('ppo-cma', 'exp000/ppo-cma/agent-yp5299oc.pt'),
-        '30': get_team('ppo-cma', 'exp000/ppo-cma/agent-a8ogk7j9.pt'),
+        '10': get_team('ppo-cma', 'exp000/ppo-cma/agent-0m1lx8tj.pt', is_old=True), # TODO: remove is old
+        '20': get_team('ppo-cma', 'exp000/ppo-cma/agent-yp5299oc.pt', is_old=True), # TODO: remove is old
+        '30': get_team('ppo-cma', 'exp000/ppo-cma/agent-a8ogk7j9.pt', is_old=True), # TODO: remove is old
     },
     'ppo-dma': {
-        '10': get_team('ppo-dma', 'exp000/ppo-dma/agent-mgeahqxu.pt'),
-        '20': get_team('ppo-dma', 'exp000/ppo-dma/agent-qzy50f6t.pt'),
-        '30': get_team('ppo-dma', 'exp000/ppo-dma/agent-ba6h8l2t.pt'),
+        '10': get_team('ppo-dma', 'exp000/ppo-dma/agent-mgeahqxu.pt', is_old=True), # TODO: remove is old
+        '20': get_team('ppo-dma', 'exp000/ppo-dma/agent-qzy50f6t.pt', is_old=True), # TODO: remove is old
+        '30': get_team('ppo-dma', 'exp000/ppo-dma/agent-ba6h8l2t.pt', is_old=True), # TODO: remove is old
     },
     'zero': {'00': get_team('zero')},
     'ou': {'00': get_team('ou')},
