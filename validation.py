@@ -53,8 +53,8 @@ if __name__ == "__main__":
     run = wandb.init(
         project='ppo-isaac-net-validation',
         monitor_gym=False,
-        name=run_name,
-        group=config['exp_name'],
+        name=f"{config['exp_name']}-{args.env_id}",
+        group=f"{config['exp_name']}-{args.env_id}",
         config=config,
     )
 
