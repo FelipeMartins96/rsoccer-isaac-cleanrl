@@ -142,7 +142,7 @@ class Agent(nn.Module):
     def __init__(self, n_obs, n_acts, h_units, h_layers):
         super().__init__()
         self.critic = nn.Sequential(
-            layer_init((n_obs, 256)),
+            layer_init(nn.Linear(n_obs, 256)),
             nn.Tanh(),
             layer_init(nn.Linear(256, 512)),
             nn.Tanh(),
@@ -153,7 +153,7 @@ class Agent(nn.Module):
             layer_init(nn.Linear(256, 1), std=1.0),
         )
         self.actor_mean = nn.Sequential(
-            layer_init((n_obs, 256)),
+            layer_init(nn.Linear(n_obs, 256)),
             nn.Tanh(),
             layer_init(nn.Linear(256, 512)),
             nn.Tanh(),
