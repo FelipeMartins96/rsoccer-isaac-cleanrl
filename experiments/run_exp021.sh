@@ -1,4 +1,4 @@
-EXP_NAME="exp020"
+EXP_NAME="exp021"
 EXP_NOTES="speed factor until half no energy"
 EXP_ARGS="--speed-factor --speed-factor-end 0.5 --no-energy"
 case $1 in
