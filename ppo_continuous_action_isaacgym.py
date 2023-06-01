@@ -122,8 +122,9 @@ def parse_args():
     parser.add_argument("--no-move", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     parser.add_argument("--no-energy", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     parser.add_argument("--speed-factor", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
-    parser.add_argument("--hidden-layers", type=int, default=3)
-    parser.add_argument("--hidden-units", type=int, default=512)
+    parser.add_argument("--speed-factor-end", type=float, default=1.0)
+    # parser.add_argument("--hidden-layers", type=int, default=3)
+    # parser.add_argument("--hidden-units", type=int, default=512)
     args = parser.parse_args()
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
@@ -140,25 +141,27 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
 class Agent(nn.Module):
     def __init__(self, n_obs, n_acts, h_units, h_layers):
         super().__init__()
-        layers = [
-            ('f_l', layer_init(nn.Linear(n_obs, h_units))),
-            ('f_t', nn.Tanh()),
-        ]
-        for i in range(h_layers):
-            layers += [
-                (f'h_l{i}', layer_init(nn.Linear(h_units, h_units))),
-                (f'h_t{i}', nn.Tanh()),
-            ]
-
         self.critic = nn.Sequential(
-            OrderedDict(
-                layers + [('last_l', layer_init(nn.Linear(h_units, 1), std=1.0))]
-            )
+            layer_init((n_obs, 256)),
+            nn.Tanh(),
+            layer_init(nn.Linear(256, 512)),
+            nn.Tanh(),
+            layer_init(nn.Linear(512, 512)),
+            nn.Tanh(),
+            layer_init(nn.Linear(512, 256)),
+            nn.Tanh(),
+            layer_init(nn.Linear(256, 1), std=1.0),
         )
         self.actor_mean = nn.Sequential(
-            OrderedDict(
-                layers + [('last_l', layer_init(nn.Linear(h_units, n_acts), std=0.01))]
-            )
+            layer_init((n_obs, 256)),
+            nn.Tanh(),
+            layer_init(nn.Linear(256, 512)),
+            nn.Tanh(),
+            layer_init(nn.Linear(512, 512)),
+            nn.Tanh(),
+            layer_init(nn.Linear(512, 256)),
+            nn.Tanh(),
+            layer_init(nn.Linear(256, n_acts), std=0.01),
         )
         self.actor_logstd = nn.Parameter(torch.zeros(1, n_acts))
 
@@ -282,7 +285,7 @@ if __name__ == "__main__":
             optimizer.param_groups[0]["lr"] = lrnow
         
         if args.speed_factor:
-            envs.set_speed_factor((update - 1.0) / num_updates)
+            envs.set_speed_factor(min(((update - 1.0) / num_updates) / args.speed_factor_end, 1.0))
 
         for step in range(0, args.num_steps):
             global_step += 1 * args.num_envs
