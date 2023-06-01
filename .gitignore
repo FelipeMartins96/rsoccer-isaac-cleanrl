@@ -1,6 +1,7 @@
 wandb/
 videos/
 runs/
+experiments/val_exp*.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
