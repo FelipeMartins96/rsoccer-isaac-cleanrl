@@ -405,7 +405,7 @@ if __name__ == "__main__":
 
         # TRY NOT TO MODIFY: record rewards for plotting purposes
         writer.add_scalar("losses/learning_rate", optimizer.param_groups[0]["lr"], global_step)
-        if args.hierarchical:
+        if args.env_id != 'goto':
             writer.add_scalar("losses/speed_factor", envs.speed_factor, global_step)
         writer.add_scalar("losses/value_loss", v_loss.item(), global_step)
         writer.add_scalar("losses/policy_loss", pg_loss.item(), global_step)
