@@ -41,7 +41,7 @@ if __name__ == "__main__":
     envs = make_env()
 
     api = wandb.Api()
-    bt_run = api.run(f"ppo-isaac-net/{args.run_id}")
+    bt_run = api.run(f"ppo-isaac-sfe/{args.run_id}")
     
     config = dict(bt_run.config)
     save_path = f"runs/validation/{config['exp_name']}/{args.env_id}/{args.run_id}"
@@ -51,7 +51,7 @@ if __name__ == "__main__":
         "num_envs": envs.num_envs,
     })
     run = wandb.init(
-        project='ppo-isaac-net-validation',
+        project='ppo-isaac-sfe-validation',
         monitor_gym=False,
         name=f"{config['exp_name']}-{args.env_id}",
         group=f"{config['exp_name']}-{args.env_id}",
