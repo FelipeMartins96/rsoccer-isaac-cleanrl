@@ -123,8 +123,6 @@ def parse_args():
     parser.add_argument("--no-energy", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     parser.add_argument("--speed-factor", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     parser.add_argument("--speed-factor-end", type=float, default=1.0)
-    parser.add_argument("--hidden-layers", type=int, default=3)
-    parser.add_argument("--hidden-units", type=int, default=512)
     args = parser.parse_args()
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
@@ -139,7 +137,7 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
 
 
 class Agent(nn.Module):
-    def __init__(self, n_obs, n_acts, h_units, h_layers):
+    def __init__(self, n_obs, n_acts):
         super().__init__()
         self.critic = nn.Sequential(
             layer_init(nn.Linear(n_obs, 256)),
@@ -254,8 +252,6 @@ if __name__ == "__main__":
     agent = Agent(
         n_obs=np.array(envs.single_observation_space.shape).prod(),
         n_acts=np.prod(envs.single_action_space.shape),
-        h_units=args.hidden_units,
-        h_layers=args.hidden_layers,
     ).to(device)
     optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
 
@@ -423,8 +419,6 @@ if __name__ == "__main__":
             ("state_dict", agent.state_dict()),
             ('n_obs', np.array(envs.single_observation_space.shape).prod()),
             ('n_acts', np.prod(envs.single_action_space.shape)),
-            ('h_units', args.hidden_units),
-            ('h_layers', args.hidden_layers),
             ('run_id', wandb.run.id),
         ])
         torch.save(save_dict, f"{save_path}/agent-{wandb.run.id}.pt")

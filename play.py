@@ -54,8 +54,6 @@ class TeamAgent(Team):
             self.agent = Agent(
                 n_obs=agent_dict['n_obs'],
                 n_acts=agent_dict['n_acts'],
-                h_units=agent_dict['h_units'],
-                h_layers=agent_dict['h_layers'],
             ).to('cuda:0')
             self.agent.load_state_dict(agent_dict['state_dict'])
 
@@ -108,8 +106,6 @@ class TeamAgent_HRL(Team):
         self.manager = Agent(
             n_obs=agent_dict['n_obs'],
             n_acts=agent_dict['n_acts'],
-            h_units=agent_dict['h_units'],
-            h_layers=agent_dict['h_layers'],
         ).to('cuda:0')
         self.manager.load_state_dict(agent_dict['state_dict'])
 
