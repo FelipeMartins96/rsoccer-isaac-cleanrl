@@ -51,7 +51,7 @@ if __name__ == "__main__":
         "num_envs": envs.num_envs,
     })
     run = wandb.init(
-        project='ppo-isaac-sfe-validation',
+        project='ppo-june-net-validation',
         monitor_gym=False,
         name=f"{config['exp_name']}-{args.env_id}",
         group=f"{config['exp_name']}-{args.env_id}",
