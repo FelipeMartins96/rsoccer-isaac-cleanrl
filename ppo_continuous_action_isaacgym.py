@@ -307,7 +307,7 @@ if __name__ == "__main__":
             next_dones[step] = next_done
             next_timeouts[step] = info["time_outs"]
             with torch.no_grad():
-                next_values[step] = agent.get_value(info['terminal_observation']).reshape(1, -1)
+                next_values[step] = agent.get_value(info['terminal_observation']).flatten()
             if 0 <= step <= 2:
                 for idx, d in enumerate(next_done):
                     if d:
@@ -350,7 +350,8 @@ if __name__ == "__main__":
         clipfracs = []
         for epoch in range(args.update_epochs):
             b_inds = torch.randperm(args.batch_size, device=device)
-            for start in range(0, args.batch_size, args.minibatch_size):
+            for mb_i in range(args.num_minibatches):
+                start = mb_i * args.minibatch_size
                 end = start + args.minibatch_size
                 mb_inds = b_inds[start:end]
 
@@ -417,8 +418,13 @@ if __name__ == "__main__":
         writer.add_scalar("losses/old_approx_kl", old_approx_kl.item(), global_step)
         writer.add_scalar("losses/approx_kl", approx_kl.item(), global_step)
         writer.add_scalar("losses/clipfrac", np.mean(clipfracs), global_step)
+        writer.add_scalar("losses/returns", returns.mean().item(), global_step)
+        writer.add_scalar("losses/advantages", advantages.mean().item(), global_step)
+        writer.add_scalar("losses/values", values.mean().item(), global_step)
+        writer.add_scalar("losses/loss", loss.item(), global_step)
         # print("SPS:", int(global_step / (time.time() - start_time)))
         writer.add_scalar("Charts/SPS", int(global_step / (time.time() - start_time)), global_step)
+        writer.add_scalar("Chart/update", update, global_step)
 
     # Save Model
     if args.track:
