@@ -59,7 +59,7 @@ def parse_args():
         help="if toggled, cuda will be enabled by default")
     parser.add_argument("--track", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="if toggled, this experiment will be tracked with Weights and Biases")
-    parser.add_argument("--wandb-project-name", type=str, default="ppo-june-net",
+    parser.add_argument("--wandb-project-name", type=str, default="debug",
         help="the wandb's project name")
     parser.add_argument("--wandb-entity", type=str, default=None,
         help="the entity (team) of wandb's project")    
@@ -71,7 +71,7 @@ def parse_args():
     # Algorithm specific arguments
     parser.add_argument("--env-id", type=str, default="sa",
         help="the id of the environment")
-    parser.add_argument("--total-timesteps", type=int, default=1000000000,
+    parser.add_argument("--total-timesteps", type=int, default=100000000,
         help="total timesteps of the experiments")
     parser.add_argument("--learning-rate", type=float, default=0.001,
         help="the learning rate of the optimizer")
@@ -419,6 +419,11 @@ if __name__ == "__main__":
         writer.add_scalar("losses/clipfrac", np.mean(clipfracs), global_step)
         # print("SPS:", int(global_step / (time.time() - start_time)))
         writer.add_scalar("Charts/SPS", int(global_step / (time.time() - start_time)), global_step)
+        writer.add_scalar("debug/returns", returns.mean().item(), global_step)
+        writer.add_scalar("debug/advantages", advantages.mean().item(), global_step)
+        writer.add_scalar("debug/values", values.mean().item(), global_step)
+        writer.add_scalar("debug/loss", loss.item(), global_step)
+
 
     # Save Model
     if args.track:
