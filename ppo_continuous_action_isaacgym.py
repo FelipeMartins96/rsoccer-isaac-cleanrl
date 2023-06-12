@@ -424,7 +424,7 @@ if __name__ == "__main__":
         writer.add_scalar("losses/loss", loss.item(), global_step)
         # print("SPS:", int(global_step / (time.time() - start_time)))
         writer.add_scalar("Charts/SPS", int(global_step / (time.time() - start_time)), global_step)
-        writer.add_scalar("Chart/update", update, global_step)
+        writer.add_scalar("Charts/update", update, global_step)
 
     # Save Model
     if args.track:
