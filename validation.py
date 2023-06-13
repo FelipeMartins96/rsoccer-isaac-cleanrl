@@ -47,8 +47,7 @@ if __name__ == "__main__":
     save_path = f"runs/validation/{config['exp_name']}/{args.env_id}/{args.run_id}"
     
     config.update({
-        "env_id": args.env_id,
-        "num_envs": envs.num_envs,
+        "env_id": args.env_id
     })
     run = wandb.init(
         project='ppo-june-net-validation',
