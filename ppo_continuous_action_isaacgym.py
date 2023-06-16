@@ -73,7 +73,7 @@ def parse_args():
         help="the id of the environment")
     parser.add_argument("--total-timesteps", type=int, default=1000000000,
         help="total timesteps of the experiments")
-    parser.add_argument("--learning-rate", type=float, default=0.00085,
+    parser.add_argument("--learning-rate", type=float, default=0.0009,
         help="the learning rate of the optimizer")
     parser.add_argument("--num-envs", type=int, default=3600,
         help="the number of parallel game environments")
@@ -89,7 +89,7 @@ def parse_args():
         help="the lambda for the general advantage estimation")
     parser.add_argument("--num-minibatches", type=int, default=3,
         help="the number of mini-batches")
-    parser.add_argument("--update-epochs", type=int, default=6,
+    parser.add_argument("--update-epochs", type=int, default=7,
         help="the K epochs to update the policy")
     parser.add_argument("--norm-adv", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
         help="Toggles advantages normalization")
@@ -110,7 +110,7 @@ def parse_args():
 
     parser.add_argument("--reward-scaler", type=float, default=1000,
         help="the scale factor applied to the reward during training")
-    parser.add_argument("--record-video-step-frequency", type=int, default=8000,
+    parser.add_argument("--record-video-step-frequency", type=int, default=12000,
         help="the frequency at which to record the videos")
     parser.add_argument("--test", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Toggle test runs, save to test path.")
