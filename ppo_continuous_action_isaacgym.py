@@ -140,7 +140,9 @@ class Agent(nn.Module):
     def __init__(self, n_obs, n_acts):
         super().__init__()
         self.critic = nn.Sequential(
-            layer_init(nn.Linear(n_obs, 256)),
+            layer_init(nn.Linear(n_obs, 128)),
+            nn.Tanh(),
+            layer_init(nn.Linear(128, 256)),
             nn.Tanh(),
             layer_init(nn.Linear(256, 512)),
             nn.Tanh(),
@@ -152,10 +154,14 @@ class Agent(nn.Module):
             nn.Tanh(),
             layer_init(nn.Linear(512, 256)),
             nn.Tanh(),
-            layer_init(nn.Linear(256, 1), std=1.0),
+            layer_init(nn.Linear(256, 128)),
+            nn.Tanh(),
+            layer_init(nn.Linear(128, 1), std=1.0),
         )
         self.actor_mean = nn.Sequential(
-            layer_init(nn.Linear(n_obs, 256)),
+            layer_init(nn.Linear(n_obs, 128)),
+            nn.Tanh(),
+            layer_init(nn.Linear(128, 256)),
             nn.Tanh(),
             layer_init(nn.Linear(256, 512)),
             nn.Tanh(),
@@ -167,7 +173,9 @@ class Agent(nn.Module):
             nn.Tanh(),
             layer_init(nn.Linear(512, 256)),
             nn.Tanh(),
-            layer_init(nn.Linear(256, n_acts), std=0.01),
+            layer_init(nn.Linear(256, 128)),
+            nn.Tanh(),
+            layer_init(nn.Linear(128, n_acts), std=0.01),
         )
         self.actor_logstd = nn.Parameter(torch.zeros(1, n_acts))
 
