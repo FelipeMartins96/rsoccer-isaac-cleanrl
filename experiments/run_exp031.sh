@@ -1,6 +1,6 @@
 EXP_NAME="exp031"
-EXP_NOTES="130% lr"
-EXP_ARGS="--learning-rate 0.0013"
+EXP_NOTES="lr / 5"
+EXP_ARGS="--learning-rate 0.0005"
 case $1 in
 0) xvfb-run -a python ppo_continuous_action_isaacgym.py --exp-name $EXP_NAME --wandb-notes="$EXP_NOTES" $EXP_ARGS --env-id sa  --seed 10 --track --capture-video;;
 1) xvfb-run -a python ppo_continuous_action_isaacgym.py --exp-name $EXP_NAME --wandb-notes="$EXP_NOTES" $EXP_ARGS --env-id cma --seed 10 --track --capture-video;;
