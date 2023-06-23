@@ -89,7 +89,7 @@ def parse_args():
         help="the lambda for the general advantage estimation")
     parser.add_argument("--num-minibatches", type=int, default=4,
         help="the number of mini-batches")
-    parser.add_argument("--update-epochs", type=int, default=8,
+    parser.add_argument("--update-epochs", type=int, default=7,
         help="the K epochs to update the policy")
     parser.add_argument("--norm-adv", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
         help="Toggles advantages normalization")

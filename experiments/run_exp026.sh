@@ -1,6 +1,6 @@
 EXP_NAME="exp026"
-EXP_NOTES="5 mb"
-EXP_ARGS="--num-minibatches 5"
+EXP_NOTES="4 mb"
+EXP_ARGS="--num-minibatches 4"
 case $1 in
 0) xvfb-run -a python ppo_continuous_action_isaacgym.py --exp-name $EXP_NAME --wandb-notes="$EXP_NOTES" $EXP_ARGS --env-id sa  --seed 10 --track --capture-video;;
 1) xvfb-run -a python ppo_continuous_action_isaacgym.py --exp-name $EXP_NAME --wandb-notes="$EXP_NOTES" $EXP_ARGS --env-id cma --seed 10 --track --capture-video;;
