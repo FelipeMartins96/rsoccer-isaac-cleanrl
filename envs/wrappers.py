@@ -162,7 +162,7 @@ class SingleAgent(gym.Wrapper):
         super().__init__(env)
         # TODO: find out which team is the best from baseline
         # TODO: pool of policies?!
-        self.opponent_policy = BASELINE_TEAMS['ppo-sa-x3']['10']
+        self.opponent_policy = BASELINE_TEAMS['ppo-sa-x3']['20']
         self._action_space = gym.spaces.Box(-1.0, 1.0, (env.num_actions,))
         self._observation_space = gym.spaces.Box(-np.inf, np.inf, (env.num_obs,))
         self.action_buf = torch.zeros((env.num_envs,) + env.action_space.shape, device=env.rl_device, dtype=torch.float32, requires_grad=False)
