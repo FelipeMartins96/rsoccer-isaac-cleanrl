@@ -53,6 +53,9 @@ def make_env(args):
         'cma': CMA,
         'dma': DMA,
     }
+
+    envs.set_use_enemy_policy(args.enemy_policy)
+
     return envs, wrappers[args.env_id](envs)
 
 def make_env_goto(args):
@@ -160,7 +163,6 @@ class SingleAgent(gym.Wrapper):
     # TODO: replicate single agent policy to dma and cma
     def __init__(self, env):
         super().__init__(env)
-        # TODO: find out which team is the best from baseline
         # TODO: pool of policies?!
         self.opponent_policy = BASELINE_TEAMS['ppo-sa-x3']['20']
         self._action_space = gym.spaces.Box(-1.0, 1.0, (env.num_actions,))
@@ -176,7 +178,8 @@ class SingleAgent(gym.Wrapper):
     def step(self, action):
         self.action_buf[:] = random_ou(self.action_buf)
         # TODO: opponent policy conditional on parameter
-        self.opponent_policy(self.action_buf[:, 1], self.obs_buf[:, 1])
+        if self.use_enemy_policy:
+            self.opponent_policy(self.action_buf[:, 1], self.obs_buf[:, 1])
         self.action_buf[:] *= self.speed_factor
         self.act_view[:] = action
         observations, rewards, dones, infos = super().step(self.action_buf)
@@ -196,6 +199,7 @@ class SingleAgent(gym.Wrapper):
 class CMA(gym.Wrapper):
     def __init__(self, env):
         super().__init__(env)
+        self.opponent_policy = BASELINE_TEAMS['ppo-sa-x3']['20']
         self._num_envs = getattr(env, "num_envs", 1)
         self.device = env.device
         num_actions = env.num_actions * 3
@@ -210,7 +214,10 @@ class CMA(gym.Wrapper):
         return {'obs': observations['obs'][:, 0, 0, :]}
 
     def step(self, action):
-        self.action_buf[:] = random_ou(self.action_buf) * self.speed_factor
+        self.action_buf[:] = random_ou(self.action_buf)
+        if self.use_enemy_policy:
+            self.opponent_policy(self.action_buf[:, 1], self.obs_buf[:, 1])
+        self.action_buf[:] *= self.speed_factor
         self.act_view[:] = action
         observations, rewards, dones, infos = super().step(self.action_buf)
         env_ids = dones.nonzero(as_tuple=False).squeeze(-1)
@@ -230,6 +237,7 @@ class CMA(gym.Wrapper):
 class DMA(gym.Wrapper):
     def __init__(self, env):
         super().__init__(env)
+        self.opponent_policy = BASELINE_TEAMS['ppo-sa-x3']['20']
         self.action_buf = torch.zeros((env.num_envs,) + env.action_space.shape, device=env.rl_device, dtype=torch.float32, requires_grad=False)
         setattr(env, "num_environments", getattr(env, "num_envs", 1) * 3)
         self._action_space = gym.spaces.Box(-1.0, 1.0, (env.num_actions,))
@@ -241,7 +249,10 @@ class DMA(gym.Wrapper):
         return {'obs': observations['obs'][:, 0, :, :].reshape(-1, self.env.num_obs)}
 
     def step(self, action):
-        self.action_buf[:] = random_ou(self.action_buf) * self.speed_factor
+        self.action_buf[:] = random_ou(self.action_buf)
+        if self.use_enemy_policy:
+            self.opponent_policy(self.action_buf[:, 1], self.obs_buf[:, 1])
+        self.action_buf[:] *= self.speed_factor
         self.action_buf[:, 0, :, :] = action.view(-1, 3, 2)
         observations, rewards, dones, infos = super().step(self.action_buf)
         env_ids = dones.nonzero(as_tuple=False).squeeze(-1)

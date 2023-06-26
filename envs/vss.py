@@ -69,6 +69,7 @@ class VSS(VecTask):
             self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
         self.view = None
         self.speed_factor = 1.0
+        self.use_enemy_policy = False
 
         self._acquire_tensors()
         self._refresh_tensors()
@@ -341,6 +342,9 @@ class VSS(VecTask):
 
     def set_speed_factor(self, speed_factor):
         self.speed_factor = speed_factor
+
+    def set_use_enemy_policy(self, use_enemy_policy):
+        self.use_enemy_policy = use_enemy_policy
     #####################################################################
     ###===========================create_sim==========================###
     #####################################################################
