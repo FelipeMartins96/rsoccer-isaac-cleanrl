@@ -101,18 +101,18 @@ class TeamAgent(Team):
 
 
 class TeamSA(TeamAgent):
-    def __call__(self, act, obs, envs):
+    def __call__(self, act, obs, envs=None):
         act[:] = random_ou(act)
         act[:, 0, :] = self.agent.get_action_and_value(obs[:, 0, :])[0]
 
 
 class TeamCMA(TeamAgent):
-    def __call__(self, act, obs, envs):
+    def __call__(self, act, obs, envs=None):
         act[:] = self.agent.get_action_and_value(obs[:, 0, :])[0].view(-1, 3, 2)
 
 
 class TeamDMA(TeamAgent):
-    def __call__(self, act, obs, envs):
+    def __call__(self, act, obs, envs=None):
         act[:] = self.agent.get_action_and_value(obs)[0]
 
 

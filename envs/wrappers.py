@@ -157,8 +157,12 @@ class RecordEpisodeStatisticsTorch(gym.Wrapper):
         )
 
 class SingleAgent(gym.Wrapper):
+    # TODO: replicate single agent policy to dma and cma
     def __init__(self, env):
         super().__init__(env)
+        # TODO: find out which team is the best from baseline
+        # TODO: pool of policies?!
+        self.opponent_policy = BASELINE_TEAMS['ppo-sa-x3']['10']
         self._action_space = gym.spaces.Box(-1.0, 1.0, (env.num_actions,))
         self._observation_space = gym.spaces.Box(-np.inf, np.inf, (env.num_obs,))
         self.action_buf = torch.zeros((env.num_envs,) + env.action_space.shape, device=env.rl_device, dtype=torch.float32, requires_grad=False)
@@ -170,7 +174,10 @@ class SingleAgent(gym.Wrapper):
         return {'obs': observations['obs'][:, 0, 0, :]}
 
     def step(self, action):
-        self.action_buf[:] = random_ou(self.action_buf) * self.speed_factor
+        self.action_buf[:] = random_ou(self.action_buf)
+        # TODO: opponent policy conditional on parameter
+        self.opponent_policy(self.action_buf[:, 1], self.obs_buf[:, 1])
+        self.action_buf[:] *= self.speed_factor
         self.act_view[:] = action
         observations, rewards, dones, infos = super().step(self.action_buf)
         env_ids = dones.nonzero(as_tuple=False).squeeze(-1)
