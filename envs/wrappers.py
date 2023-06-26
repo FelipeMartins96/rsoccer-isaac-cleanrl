@@ -2,7 +2,7 @@ import gym
 import numpy as np
 import torch
 
-def random_ou(prev, speed_factor=1.0):
+def random_ou(prev):
     ou_theta = 0.1
     ou_sigma = 0.15
     noise = (
@@ -16,7 +16,7 @@ def random_ou(prev, speed_factor=1.0):
             requires_grad=False,
         )
     )
-    return noise.clamp(-1.0, 1.0) * speed_factor
+    return noise.clamp(-1.0, 1.0)
 
 def make_env(args):
     from hydra import compose, initialize
@@ -169,7 +169,7 @@ class SingleAgent(gym.Wrapper):
         return {'obs': observations['obs'][:, 0, 0, :]}
 
     def step(self, action):
-        self.action_buf[:] = random_ou(self.action_buf, self.speed_factor)
+        self.action_buf[:] = random_ou(self.action_buf) * self.speed_factor
         self.act_view[:] = action
         observations, rewards, dones, infos = super().step(self.action_buf)
         env_ids = dones.nonzero(as_tuple=False).squeeze(-1)
@@ -202,7 +202,7 @@ class CMA(gym.Wrapper):
         return {'obs': observations['obs'][:, 0, 0, :]}
 
     def step(self, action):
-        self.action_buf[:] = random_ou(self.action_buf, self.speed_factor)
+        self.action_buf[:] = random_ou(self.action_buf) * self.speed_factor
         self.act_view[:] = action
         observations, rewards, dones, infos = super().step(self.action_buf)
         env_ids = dones.nonzero(as_tuple=False).squeeze(-1)
@@ -233,7 +233,7 @@ class DMA(gym.Wrapper):
         return {'obs': observations['obs'][:, 0, :, :].reshape(-1, self.env.num_obs)}
 
     def step(self, action):
-        self.action_buf[:] = random_ou(self.action_buf, self.speed_factor)
+        self.action_buf[:] = random_ou(self.action_buf) * self.speed_factor
         self.action_buf[:, 0, :, :] = action.view(-1, 3, 2)
         observations, rewards, dones, infos = super().step(self.action_buf)
         env_ids = dones.nonzero(as_tuple=False).squeeze(-1)
