@@ -34,6 +34,14 @@ def make_env(args):
         cfg['env']['rew_weights']['move'] = 0.0
     if args.no_energy:
         cfg['env']['rew_weights']['energy'] = 0.0
+    if args.no_atk_foul:
+        cfg['env']['rew_weights']['atk_foul'] = 0.0
+    if args.no_def_foul:
+        cfg['env']['rew_weights']['def_foul'] = 0.0
+    if args.check_atk_foul:
+        cfg['env']['done_flags']['atk_foul'] = 1.0
+    if args.check_def_foul:
+        cfg['env']['done_flags']['def_foul'] = 1.0
     
     from envs.vss import VSS
     envs = VSS(
@@ -97,9 +105,9 @@ class RecordEpisodeStatisticsTorchVSS(gym.Wrapper):
 
     def reset(self, **kwargs):
         observations = super().reset(**kwargs)
-        self.episode_returns = torch.zeros((self._num_envs, 4), dtype=torch.float32, device=self.device)
+        self.episode_returns = torch.zeros((self._num_envs, 6), dtype=torch.float32, device=self.device)
         self.episode_lengths = torch.zeros(self._num_envs, dtype=torch.int32, device=self.device)
-        self.returned_episode_returns = torch.zeros((self._num_envs, 4), dtype=torch.float32, device=self.device)
+        self.returned_episode_returns = torch.zeros((self._num_envs, 6), dtype=torch.float32, device=self.device)
         self.returned_episode_lengths = torch.zeros(self._num_envs, dtype=torch.int32, device=self.device)
         return observations
 
@@ -116,6 +124,8 @@ class RecordEpisodeStatisticsTorchVSS(gym.Wrapper):
             'grad' : self.returned_episode_returns[:,1],
             'move' : self.returned_episode_returns[:,2],
             'energy' : self.returned_episode_returns[:,3],
+            'atk_foul' : self.returned_episode_returns[:,4],
+            'def_foul' : self.returned_episode_returns[:,5],
             'return' : self.returned_episode_returns.sum(1),
         }
         infos["l"] = self.returned_episode_lengths

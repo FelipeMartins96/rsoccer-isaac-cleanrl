@@ -46,6 +46,10 @@ class VSS(VecTask):
         self.w_grad = cfg['env']['rew_weights']['grad']
         self.w_move = cfg['env']['rew_weights']['move']
         self.w_energy = cfg['env']['rew_weights']['energy']
+        self.w_atk_foul = cfg['env']['rew_weights']['atk_foul']
+        self.w_def_foul = cfg['env']['rew_weights']['def_foul']
+        self.done_on_atk_foul = cfg['env']['done_flags']['atk_foul']
+        self.done_on_def_foul = cfg['env']['done_flags']['def_foul']
         self.robot_max_wheel_rad_s = 42.0
         self.min_robot_placement_dist = 0.07
         self.cfg = cfg
@@ -92,7 +96,7 @@ class VSS(VecTask):
             dtype=torch.float,
         )
         self.rew_buf = torch.zeros(
-            (num_fields, NUM_TEAMS, NUM_ROBOTS, 4), device=device, dtype=torch.float
+            (num_fields, NUM_TEAMS, NUM_ROBOTS, 6), device=device, dtype=torch.float
         )
         self.reset_buf = torch.ones(num_fields, device=device, dtype=torch.long)
         self.timeout_buf = torch.zeros(num_fields, device=device, dtype=torch.long)
@@ -258,6 +262,11 @@ class VSS(VecTask):
         if self.w_energy > 0:
             energy_rew = compute_energy_rew(self.dof_velocity_buf) * self.w_energy
             self.rew_buf[..., 3] += energy_rew
+        
+        atk_foul_rew = compute_atk_foul_rew() #TODO
+        self.rew_buf[..., 4] += atk_foul_rew * self.w_atk_foul
+        def_foul_rew = compute_def_foul_rew() # TODO
+        self.rew_buf[..., 5] += def_foul_rew * self.w_def_foul
 
         # Dones
         self.reset_buf = compute_vss_dones(
@@ -267,6 +276,8 @@ class VSS(VecTask):
             max_episode_length=self.max_episode_length,
             field_width=self.field_width,
             goal_height=self.goal_height,
+            atk_foul=atk_foul_rew * self.done_on_atk_foul,
+            def_foul=def_foul_rew * self.done_on_def_foul,
         )
 
     def reset_dones(self):
