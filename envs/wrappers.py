@@ -38,10 +38,10 @@ def make_env(args):
         cfg['env']['rew_weights']['atk_foul'] = 0.0
     if args.no_def_foul:
         cfg['env']['rew_weights']['def_foul'] = 0.0
-    if args.check_atk_foul:
-        cfg['env']['done_flags']['atk_foul'] = 1.0
-    if args.check_def_foul:
-        cfg['env']['done_flags']['def_foul'] = 1.0
+    if args.check_blue_foul:
+        cfg['env']['done_flags']['blue_foul'] = 1.0
+    if args.check_yellow_foul:
+        cfg['env']['done_flags']['yellow_foul'] = 1.0
     
     from envs.vss import VSS
     envs = VSS(
@@ -170,7 +170,6 @@ class RecordEpisodeStatisticsTorch(gym.Wrapper):
         )
 
 class SingleAgent(gym.Wrapper):
-    # TODO: replicate single agent policy to dma and cma
     def __init__(self, env):
         super().__init__(env)
         # TODO: pool of policies?!

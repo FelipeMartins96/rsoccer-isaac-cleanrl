@@ -48,8 +48,8 @@ class VSS(VecTask):
         self.w_energy = cfg['env']['rew_weights']['energy']
         self.w_atk_foul = cfg['env']['rew_weights']['atk_foul']
         self.w_def_foul = cfg['env']['rew_weights']['def_foul']
-        self.done_on_atk_foul = cfg['env']['done_flags']['atk_foul']
-        self.done_on_def_foul = cfg['env']['done_flags']['def_foul']
+        self.done_on_blue_foul = cfg['env']['done_flags']['blue_foul']
+        self.done_on_yellow_foul = cfg['env']['done_flags']['yellow_foul']
         self.robot_max_wheel_rad_s = 42.0
         self.min_robot_placement_dist = 0.07
         self.cfg = cfg
@@ -262,22 +262,27 @@ class VSS(VecTask):
         if self.w_energy > 0:
             energy_rew = compute_energy_rew(self.dof_velocity_buf) * self.w_energy
             self.rew_buf[..., 3] += energy_rew
-        
-        atk_foul_rew = compute_atk_foul_rew() #TODO
-        self.rew_buf[..., 4] += atk_foul_rew * self.w_atk_foul
-        def_foul_rew = compute_def_foul_rew() # TODO
-        self.rew_buf[..., 5] += def_foul_rew * self.w_def_foul
+
+        blue_atk_foul = compute_right_side_foul(self.ball_pos, self.robots_pos[:,0])
+        blue_def_foul = compute_left_side_foul(self.ball_pos, self.robots_pos[:,0])
+        yellow_atk_foul = compute_left_side_foul(self.ball_pos, self.robots_pos[:,1])
+        yellow_def_foul = compute_right_side_foul(self.ball_pos, self.robots_pos[:,1])
+
+        self.rew_buf[:,0,:,4] += blue_atk_foul.unsqueeze(1) * self.w_atk_foul
+        self.rew_buf[:,0,:,5] += blue_def_foul.unsqueeze(1) * self.w_def_foul
+        self.rew_buf[:,1,:,4] += yellow_atk_foul.unsqueeze(1) * self.w_atk_foul
+        self.rew_buf[:,1,:,5] += yellow_def_foul.unsqueeze(1) * self.w_def_foul
 
         # Dones
         self.reset_buf = compute_vss_dones(
             ball_pos=self.ball_pos,
             reset_buf=self.reset_buf,
             progress_buf=self.progress_buf,
+            blue_foul=(blue_atk_foul | blue_def_foul) * self.done_on_blue_foul,
+            yellow_foul=(yellow_atk_foul | yellow_def_foul) * self.done_on_yellow_foul,
             max_episode_length=self.max_episode_length,
             field_width=self.field_width,
             goal_height=self.goal_height,
-            atk_foul=atk_foul_rew * self.done_on_atk_foul,
-            def_foul=def_foul_rew * self.done_on_def_foul,
         )
 
     def reset_dones(self):
@@ -676,17 +681,46 @@ def compute_energy_rew(actions):
     # type: (Tensor) -> Tensor
     return -torch.mean(torch.abs(actions), dim=-1)
 
+@torch.jit.script
+def compute_right_side_foul(
+    ball_pos,
+    robots_pos,
+):
+    # type: (Tensor, Tensor) -> Tensor
+    # CHECK IF BALL IS IN ENEMY GOAL AREA
+    is_ball_inside = (ball_pos[:, 0] > 0.6) & (torch.abs(ball_pos[:, 1]) < 0.35)
+
+    # CHECK IF ROBOT IS IN ENEMY GOAL AREA
+    is_robot_inside = (robots_pos[..., 0] > 0.6) & (torch.abs(robots_pos[..., 1]) < 0.35)
+    
+    return is_ball_inside & (is_robot_inside.sum(1) > 1)
+
+@torch.jit.script
+def compute_left_side_foul(
+    ball_pos,
+    robots_pos,
+):
+    # type: (Tensor, Tensor) -> Tensor
+    # CHECK IF BALL IS IN ENEMY GOAL AREA
+    is_ball_inside = (ball_pos[:, 0] < -0.6) & (torch.abs(ball_pos[:, 1]) < 0.35)
+
+    # CHECK IF ROBOT IS IN ENEMY GOAL AREA
+    is_robot_inside = (robots_pos[..., 0] < -0.6) & (torch.abs(robots_pos[..., 1]) < 0.35)
+    
+    return is_ball_inside & (is_robot_inside.sum(1) > 1)
 
 @torch.jit.script
 def compute_vss_dones(
     ball_pos,
     reset_buf,
     progress_buf,
+    blue_foul,
+    yellow_foul,
     max_episode_length,
     field_width,
     goal_height,
 ):
-    # type: (Tensor, Tensor, Tensor, float, float, float) -> Tensor
+    # type: (Tensor, Tensor, Tensor, Tensor, Tensor, float, float, float) -> Tensor
 
     # CHECK GOAL
     is_goal = (torch.abs(ball_pos[:, 0]) > (field_width / 2)) & (
@@ -696,6 +730,8 @@ def compute_vss_dones(
     reset = torch.zeros_like(reset_buf)
 
     reset = torch.where(is_goal, ones, reset)
+    reset = torch.where(blue_foul, ones, reset)
+    reset = torch.where(yellow_foul, ones, reset)
     reset = torch.where(progress_buf >= max_episode_length, ones, reset)
 
     return reset

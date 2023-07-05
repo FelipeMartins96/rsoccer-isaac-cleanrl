@@ -19,6 +19,4 @@ OPT:
     - [ ] Ajustar tamanho das observações
     - [ ] Como deixar compativel com as redes anteriores
 
-Fazer a função de calcular falta de ataque
-fazer a função de calcular falta de defesa
-modificar função de dones para considerar as faltas
+logar motivo do done
