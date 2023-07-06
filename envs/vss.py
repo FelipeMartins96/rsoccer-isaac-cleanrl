@@ -48,8 +48,8 @@ class VSS(VecTask):
         self.w_energy = cfg['env']['rew_weights']['energy']
         self.w_atk_foul = cfg['env']['rew_weights']['atk_foul']
         self.w_def_foul = cfg['env']['rew_weights']['def_foul']
-        self.done_on_blue_foul = cfg['env']['done_flags']['blue_foul']
-        self.done_on_yellow_foul = cfg['env']['done_flags']['yellow_foul']
+        self.check_blue_foul = cfg['env']['done_flags']['blue_foul']
+        self.check_yellow_foul = cfg['env']['done_flags']['yellow_foul']
         self.robot_max_wheel_rad_s = 42.0
         self.min_robot_placement_dist = 0.07
         self.cfg = cfg
@@ -263,10 +263,10 @@ class VSS(VecTask):
             energy_rew = compute_energy_rew(self.dof_velocity_buf) * self.w_energy
             self.rew_buf[..., 3] += energy_rew
 
-        blue_atk_foul = compute_right_side_foul(self.ball_pos, self.robots_pos[:,0]) & (self.w_atk_foul != 0)
-        blue_def_foul = compute_left_side_foul(self.ball_pos, self.robots_pos[:,0]) & (self.w_def_foul != 0)
-        yellow_atk_foul = compute_left_side_foul(self.ball_pos, self.robots_pos[:,1]) & (self.w_atk_foul != 0)
-        yellow_def_foul = compute_right_side_foul(self.ball_pos, self.robots_pos[:,1]) & (self.w_def_foul != 0)
+        blue_atk_foul = (compute_right_side_foul(self.ball_pos, self.robots_pos[:,0]) & (self.w_atk_foul != 0) )* self.check_blue_foul
+        blue_def_foul = (compute_left_side_foul(self.ball_pos, self.robots_pos[:,0]) & (self.w_def_foul != 0) )* self.check_blue_foul
+        yellow_atk_foul = (compute_left_side_foul(self.ball_pos, self.robots_pos[:,1]) & (self.w_atk_foul != 0) )* self.check_yellow_foul
+        yellow_def_foul = (compute_right_side_foul(self.ball_pos, self.robots_pos[:,1]) & (self.w_def_foul != 0) )* self.check_yellow_foul
 
         self.rew_buf[:,0,:,4] += blue_atk_foul.unsqueeze(1) * self.w_atk_foul
         self.rew_buf[:,0,:,5] += blue_def_foul.unsqueeze(1) * self.w_def_foul
@@ -278,8 +278,8 @@ class VSS(VecTask):
             ball_pos=self.ball_pos,
             reset_buf=self.reset_buf,
             progress_buf=self.progress_buf,
-            blue_foul=(blue_atk_foul | blue_def_foul) * self.done_on_blue_foul,
-            yellow_foul=(yellow_atk_foul | yellow_def_foul) * self.done_on_yellow_foul,
+            blue_foul=(blue_atk_foul) * self.check_blue_foul,
+            yellow_foul=(yellow_atk_foul) * self.check_yellow_foul,
             max_episode_length=self.max_episode_length,
             field_width=self.field_width,
             goal_height=self.goal_height,
