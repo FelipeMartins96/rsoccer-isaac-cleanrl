@@ -270,7 +270,7 @@ class DMA(gym.Wrapper):
         infos['terminal_observation'] = infos['terminal_observation'][:, 0, :, :].reshape(-1, self.env.num_obs)
         infos['progress_buffer'] = infos['progress_buffer'].unsqueeze(1).repeat_interleave(3)
         infos['time_outs'] = infos['time_outs'].unsqueeze(1).repeat_interleave(3)
-        infos['rews'] = rewards[:, 0, :].reshape(-1, 4)
+        infos['rews'] = rewards[:, 0, :].reshape(-1, 6)
         
         return (
             {'obs': observations['obs'][:, 0, :, :].reshape(-1, self.env.num_obs)},
