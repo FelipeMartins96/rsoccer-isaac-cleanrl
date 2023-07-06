@@ -10,8 +10,8 @@ env:
     grad: 2
     move: 3
     energy: 0.002
-    atk_foul: 1
-    def_foul: 1
+    atk_foul: -1
+    def_foul: -1
   done_flags:
     blue_foul: 0
     yellow_foul: 0

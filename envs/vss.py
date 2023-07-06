@@ -263,10 +263,10 @@ class VSS(VecTask):
             energy_rew = compute_energy_rew(self.dof_velocity_buf) * self.w_energy
             self.rew_buf[..., 3] += energy_rew
 
-        blue_atk_foul = compute_right_side_foul(self.ball_pos, self.robots_pos[:,0])
-        blue_def_foul = compute_left_side_foul(self.ball_pos, self.robots_pos[:,0])
-        yellow_atk_foul = compute_left_side_foul(self.ball_pos, self.robots_pos[:,1])
-        yellow_def_foul = compute_right_side_foul(self.ball_pos, self.robots_pos[:,1])
+        blue_atk_foul = compute_right_side_foul(self.ball_pos, self.robots_pos[:,0]) & (self.w_atk_foul != 0)
+        blue_def_foul = compute_left_side_foul(self.ball_pos, self.robots_pos[:,0]) & (self.w_def_foul != 0)
+        yellow_atk_foul = compute_left_side_foul(self.ball_pos, self.robots_pos[:,1]) & (self.w_atk_foul != 0)
+        yellow_def_foul = compute_right_side_foul(self.ball_pos, self.robots_pos[:,1]) & (self.w_def_foul != 0)
 
         self.rew_buf[:,0,:,4] += blue_atk_foul.unsqueeze(1) * self.w_atk_foul
         self.rew_buf[:,0,:,5] += blue_def_foul.unsqueeze(1) * self.w_def_foul
