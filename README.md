@@ -19,4 +19,10 @@ OPT:
     - [ ] Ajustar tamanho das observações
     - [ ] Como deixar compativel com as redes anteriores
 
-logar motivo do done
+Refatorar:
+ - Unir pesos e done para faltas
+ - Retornar flag de motivo de done
+ - Logar motivo de done na validação
+
+Avaliar:
+ - Validar com faltas do amarelo

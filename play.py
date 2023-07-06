@@ -359,7 +359,8 @@ def play_matches(envs, blue_team, yellow_team, n_matches, video_path=None):
     envs = ExtractObsWrapper(envs)
 
     ep_count = 0
-    rew_sum = 0
+    goal_score_sum = 0
+    atk_foul_sum = 0
     len_sum = 0
     action_buf = torch.zeros(
         (envs.cfg['env']['numEnvs'],) + envs.action_space.shape, device=envs.device
@@ -374,7 +375,8 @@ def play_matches(envs, blue_team, yellow_team, n_matches, video_path=None):
         env_ids = dones[:1065].nonzero(as_tuple=False).squeeze(-1)
         if len(env_ids):
             ep_count += len(env_ids)
-            rew_sum += rew[env_ids, 0, 0, 0].sum().item()
+            goal_score_sum += rew[env_ids, 0, 0, 0].sum().item()
+            atk_foul_sum += rew[env_ids, 0, 0, 4].sum().item()
             len_sum += info['progress_buffer'][env_ids].sum().item()
 
-    return rew_sum / ep_count, len_sum / ep_count
+    return goal_score_sum / ep_count, atk_foul_sum / ep_count, len_sum / ep_count

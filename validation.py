@@ -60,18 +60,22 @@ if __name__ == "__main__":
     #TODO: remove is_old
     blue_team = get_team(run_name, args.model_path, bt_run.config['hierarchical'], is_old=False)
     total_score = 0
+    total_atk_fouls = 0
     total_len = 0
     total_count = 0
     for team in BASELINE_TEAMS:
         team_score = 0
+        team_atk_fouls = 0
         team_len = 0
         for seed in BASELINE_TEAMS[team]:
             print(f"Playing {team} {seed}")
             yellow_team = BASELINE_TEAMS[team][seed]
-            rews, lens = play_matches(envs, blue_team, yellow_team, 10000, f"{save_path}/val_{team}_{seed}")
-            team_score += rews
+            goal_score, atk_fouls, lens = play_matches(envs, blue_team, yellow_team, 10000, f"{save_path}/val_{team}_{seed}")
+            team_score += goal_score
+            team_atk_fouls += atk_fouls
             team_len += lens
-            total_score += rews
+            total_score += goal_score
+            total_atk_fouls += atk_fouls
             total_len += lens
             total_count += 1
             if team == 'zero' or team == 'ou':
@@ -79,8 +83,13 @@ if __name__ == "__main__":
             else:
                 run.log({f"Media/{team}/{seed}": wandb.Video(f"{save_path}/val_{team}_{seed}/video.000-step-0.mp4")})
         run.summary[f"Score/{team}"] = team_score / len(BASELINE_TEAMS[team])
+        run.summary[f"Attack Fouls/{team}"] = team_atk_fouls / len(BASELINE_TEAMS[team])
         run.summary[f"Length/{team}"] = team_len / len(BASELINE_TEAMS[team])
     run.summary["Score/Mean"] = total_score / total_count
+    run.summary["Attack Fouls/Mean"] = total_atk_fouls / total_count
     run.summary["Length/Mean"] = total_len / total_count
+    run.summary["Mean/Score"] = total_score / total_count
+    run.summary["Mean/Attack Fouls"] = total_atk_fouls / total_count
+    run.summary["Mean/Length"] = total_len / total_count
 
     wandb.finish()
