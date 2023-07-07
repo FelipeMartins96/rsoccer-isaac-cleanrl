@@ -59,28 +59,75 @@ if __name__ == "__main__":
 
     #TODO: remove is_old
     blue_team = get_team(run_name, args.model_path, bt_run.config['hierarchical'], is_old=False)
-    total_score = 0
-    total_len = 0
-    total_count = 0
+
+    # 3 done cases, len by case:
+    totals = {
+        'matches': 0,
+        'match_steps': 0,
+        'wins': 0,
+        'losses': 0,
+        'draws': 0,
+        'len_wins': 0,
+        'len_losses': 0,
+        'len_draws': 0,
+    }
+
     for team in BASELINE_TEAMS:
-        team_score = 0
-        team_len = 0
+        team_totals = {
+            'matches': 0,
+            'match_steps': 0,
+            'wins': 0,
+            'losses': 0,
+            'draws': 0,
+            'len_wins': 0,
+            'len_losses': 0,
+            'len_draws': 0,
+        }
         for seed in BASELINE_TEAMS[team]:
             print(f"Playing {team} {seed}")
             yellow_team = BASELINE_TEAMS[team][seed]
-            rews, lens = play_matches(envs, blue_team, yellow_team, 10000, f"{save_path}/val_{team}_{seed}")
-            team_score += rews
-            team_len += lens
-            total_score += rews
-            total_len += lens
-            total_count += 1
+            results = play_matches(envs, blue_team, yellow_team, 10000, f"{save_path}/val_{team}_{seed}")
+
+            team_totals['matches'] += results['matches']
+            team_totals['match_steps'] += results['match_steps']
+            team_totals['wins'] += results['wins']
+            team_totals['losses'] += results['losses']
+            team_totals['draws'] += results['draws']
+            team_totals['len_wins'] += results['len_wins']
+            team_totals['len_losses'] += results['len_losses']
+            team_totals['len_draws'] += results['len_draws']
+            
             if team == 'zero' or team == 'ou':
                 run.log({f"Media/Deterministic/{team}": wandb.Video(f"{save_path}/val_{team}_{seed}/video.000-step-0.mp4")})
             else:
                 run.log({f"Media/{team}/{seed}": wandb.Video(f"{save_path}/val_{team}_{seed}/video.000-step-0.mp4")})
-        run.summary[f"Score/{team}"] = team_score / len(BASELINE_TEAMS[team])
-        run.summary[f"Length/{team}"] = team_len / len(BASELINE_TEAMS[team])
-    run.summary["Score/Mean"] = total_score / total_count
-    run.summary["Length/Mean"] = total_len / total_count
+
+        
+        run.summary[f"{team}/Score"] = (team_totals['wins'] - team_totals['losses']) / team_totals['matches']
+        run.summary[f"{team}/Lenght"] = team_totals['match_steps'] / team_totals['matches']
+        run.summary[f"{team}/Win Rate"] = team_totals['wins'] / team_totals['matches']
+        run.summary[f"{team}/Loss Rate"] = team_totals['losses'] / team_totals['matches']
+        run.summary[f"{team}/Draw Rate"] = team_totals['draws'] / team_totals['matches']
+        run.summary[f"{team}/Lenght Wins"] = team_totals['len_wins'] / team_totals['wins']
+        run.summary[f"{team}/Lenght Losses"] = team_totals['len_losses'] / team_totals['losses']
+        run.summary[f"{team}/Lenght Draws"] = team_totals['len_draws'] / team_totals['draws']
+    
+        totals['matches'] += team_totals['matches']
+        totals['match_steps'] += team_totals['match_steps']
+        totals['wins'] += team_totals['wins']
+        totals['losses'] += team_totals['losses']
+        totals['draws'] += team_totals['draws']
+        totals['len_wins'] += team_totals['len_wins']
+        totals['len_losses'] += team_totals['len_losses']
+        totals['len_draws'] += team_totals['len_draws']
+
+    run.summary["Score"] = (totals['wins'] - totals['losses']) / totals['matches']
+    run.summary["Lenght"] = totals['match_steps'] / totals['matches']
+    run.summary["Win Rate"] = totals['wins'] / totals['matches']
+    run.summary["Loss Rate"] = totals['losses'] / totals['matches']
+    run.summary["Draw Rate"] = totals['draws'] / totals['matches']
+    run.summary["Lenght Wins"] = totals['len_wins'] / totals['wins']
+    run.summary["Lenght Losses"] = totals['len_losses'] / totals['losses']
+    run.summary["Lenght Draws"] = totals['len_draws'] / totals['draws']
 
     wandb.finish()

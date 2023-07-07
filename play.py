@@ -358,14 +358,21 @@ def play_matches(envs, blue_team, yellow_team, n_matches, video_path=None):
         )
     envs = ExtractObsWrapper(envs)
 
-    ep_count = 0
-    rew_sum = 0
-    len_sum = 0
+    results = {
+        'matches': 0,
+        'match_steps': 0,
+        'wins': 0,
+        'losses': 0,
+        'draws': 0,
+        'len_wins': 0,
+        'len_losses': 0,
+        'len_draws': 0,
+    }
     action_buf = torch.zeros(
         (envs.cfg['env']['numEnvs'],) + envs.action_space.shape, device=envs.device
     )
     obs = envs.reset()
-    while ep_count < n_matches:
+    while results['matches'] < n_matches:
         blue_team(action_buf[:, 0], obs[:, 0], envs)
         # print(act)
         yellow_team(action_buf[:, 1], obs[:, 1], envs)
@@ -373,8 +380,21 @@ def play_matches(envs, blue_team, yellow_team, n_matches, video_path=None):
 
         env_ids = dones[:1065].nonzero(as_tuple=False).squeeze(-1)
         if len(env_ids):
-            ep_count += len(env_ids)
-            rew_sum += rew[env_ids, 0, 0, 0].sum().item()
-            len_sum += info['progress_buffer'][env_ids].sum().item()
+            results['matches'] += len(env_ids)
+            goal_score = rew[env_ids, 0, 0, 0]
 
-    return rew_sum / ep_count, len_sum / ep_count
+            win_ids = goal_score > 0
+            loss_ids = goal_score < 0
+            draw_ids = goal_score == 0
+
+            results['wins'] += win_ids.sum().item()
+            results['losses'] += loss_ids.sum().item()
+            results['draws'] += draw_ids.sum().item()
+
+            done_lengths = info['progress_buffer'][env_ids]
+            results['match_steps'] += done_lengths.sum().item()
+            results['len_wins'] += done_lengths[win_ids].sum().item()
+            results['len_losses'] += done_lengths[loss_ids].sum().item()
+            results['len_draws'] += done_lengths[draw_ids].sum().item()
+
+    return results
