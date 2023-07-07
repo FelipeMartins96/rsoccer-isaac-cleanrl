@@ -366,7 +366,6 @@ def play_matches(envs, blue_team, yellow_team, n_matches, video_path=None):
         'draws': 0,
         'len_wins': 0,
         'len_losses': 0,
-        'len_draws': 0,
     }
     action_buf = torch.zeros(
         (envs.cfg['env']['numEnvs'],) + envs.action_space.shape, device=envs.device
@@ -395,6 +394,5 @@ def play_matches(envs, blue_team, yellow_team, n_matches, video_path=None):
             results['match_steps'] += done_lengths.sum().item()
             results['len_wins'] += done_lengths[win_ids].sum().item()
             results['len_losses'] += done_lengths[loss_ids].sum().item()
-            results['len_draws'] += done_lengths[draw_ids].sum().item()
 
     return results
