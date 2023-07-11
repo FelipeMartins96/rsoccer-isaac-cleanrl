@@ -1,5 +1,5 @@
 EXP_NAME="exp000"
-EXP_NOTES="Baseline"
+EXP_NOTES="baseline"
 EXP_ARGS=""
 case $1 in
 0) xvfb-run -a python ppo_continuous_action_isaacgym.py --exp-name $EXP_NAME --wandb-notes="$EXP_NOTES" $EXP_ARGS --env-id sa  --seed 10 --track --capture-video;;
