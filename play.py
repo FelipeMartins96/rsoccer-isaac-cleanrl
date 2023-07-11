@@ -76,13 +76,13 @@ class Team(ABC):
 
 
 class TeamZero(Team):
-    def __call__(self, act, obs, envs):
-        act[:] *= 0
+    def __call__(self, act, obs, envs=None):
+        return act * 0
 
 
 class TeamOU(Team):
-    def __call__(self, act, obs, envs):
-        act[:] = random_ou(act)
+    def __call__(self, act, obs, envs=None):
+        return random_ou(act)
 
 
 class TeamAgent(Team):
@@ -104,16 +104,17 @@ class TeamSA(TeamAgent):
     def __call__(self, act, obs, envs=None):
         act[:] = random_ou(act)
         act[:, 0, :] = self.agent.get_action_and_value(obs[:, 0, :])[0]
+        return act
 
 
 class TeamCMA(TeamAgent):
     def __call__(self, act, obs, envs=None):
-        act[:] = self.agent.get_action_and_value(obs[:, 0, :])[0].view(-1, 3, 2)
+        return self.agent.get_action_and_value(obs[:, 0, :])[0].view(-1, 3, 2)
 
 
 class TeamDMA(TeamAgent):
     def __call__(self, act, obs, envs=None):
-        act[:] = self.agent.get_action_and_value(obs)[0]
+        return self.agent.get_action_and_value(obs)[0]
 
 
 from isaacgym.torch_utils import get_euler_xyz
@@ -372,9 +373,8 @@ def play_matches(envs, blue_team, yellow_team, n_matches, video_path=None):
     )
     obs = envs.reset()
     while results['matches'] < n_matches:
-        blue_team(action_buf[:, 0], obs[:, 0], envs)
-        # print(act)
-        yellow_team(action_buf[:, 1], obs[:, 1], envs)
+        action_buf[:, 0] = blue_team(action_buf[:, 0], obs[:, 0], envs)
+        action_buf[:, 1] = yellow_team(action_buf[:, 1], obs[:, 1], envs)
         obs, rew, dones, info = envs.step(action_buf)
 
         env_ids = dones[:1065].nonzero(as_tuple=False).squeeze(-1)

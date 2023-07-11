@@ -9,7 +9,7 @@ from hydra import compose, initialize
 from isaacgymenvs.utils.reformat import omegaconf_to_dict
 from play import play_matches, get_team
 import argparse
-from envs.wrappers import HRL, SingleAgent, CMA, DMA
+from envs.wrappers import HRL, SingleAgent, CMA, DMA, EnemyPolicy
 
 def parse_args():
     # fmt: off
@@ -35,24 +35,25 @@ if __name__ == "__main__":
         cfg = compose(config_name="vss")
     cfg = omegaconf_to_dict(cfg)
 
-    cfg['env']['numEnvs'] = 3
+    cfg['env']['numEnvs'] = 9
     # envs = VSSGoTo(
     envs = VSS(
         cfg=cfg,
         rl_device="cuda:0",
         sim_device="cuda:0",
         graphics_device_id=0,
-        headless=True,
+        headless=False,
         virtual_screen_capture=False,
-        force_render=False,
+        force_render=True,
     )
-    envs = HRL(envs)
-    envs = SingleAgent(envs)
+    # envs = HRL(envs)
+    envs = EnemyPolicy(envs, pool='x3-cma-dma-ou-zero')
+    # envs = SingleAgent(envs)
     # envs = CMA(envs)
-    # envs = DMA(envs)
+    envs = DMA(envs)
 
     actions = torch.ones((envs.num_environments,) + envs.action_space.shape, device=envs.rl_device) * 2
     while True:
-        envs.set_speed_factor(0)
+        envs.set_speed_factor(1)
         envs.step(actions)
         envs.render()

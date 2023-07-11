@@ -123,7 +123,8 @@ def parse_args():
     parser.add_argument("--no-energy", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True)
     parser.add_argument("--speed-factor", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True)
     parser.add_argument("--speed-factor-end", type=float, default=0.5)
-    parser.add_argument("--enemy-policy", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
+    parser.add_argument("--enemy-policy", type=str, default="ou",
+        help="the enemy team policy pool id")
 
     args = parser.parse_args()
     args.batch_size = int(args.num_envs * args.num_steps)
