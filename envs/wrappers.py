@@ -206,6 +206,13 @@ def get_policies_list(num_envs, pool):
             (idxs[3], BASELINE_TEAMS['ou']['00']),
             (idxs[4], BASELINE_TEAMS['zero']['00']),
         ]
+    elif pool == '.9x3-ou-zero':
+        idxs = torch.arange(num_envs).split([round(num_envs*0.9), round(num_envs*0.05), round(num_envs*0.05)])
+        return [
+            (idxs[0], BASELINE_TEAMS['ppo-sa-x3']['20']),
+            (idxs[1], BASELINE_TEAMS['ou']['00']),
+            (idxs[2], BASELINE_TEAMS['zero']['00']),
+        ]
     else:
         raise NotImplementedError # Invalid policies pool name
 
