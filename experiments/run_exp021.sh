@@ -1,6 +1,6 @@
 EXP_NAME="exp021"
 EXP_NOTES="atk-foul_.9x3-ou-zero"
-EXP_ARGS="--enemy-policy ou --no-energy False --atk-foul"
+EXP_ARGS="--enemy-policy .9x3-ou-zero --no-energy False --atk-foul"
 case $1 in
 0) xvfb-run -a python ppo_continuous_action_isaacgym.py --exp-name $EXP_NAME --wandb-notes="$EXP_NOTES" $EXP_ARGS --env-id sa  --seed 10 --track --capture-video;;
 1) xvfb-run -a python ppo_continuous_action_isaacgym.py --exp-name $EXP_NAME --wandb-notes="$EXP_NOTES" $EXP_ARGS --env-id cma --seed 10 --track --capture-video;;
