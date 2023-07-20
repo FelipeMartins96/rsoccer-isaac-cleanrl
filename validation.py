@@ -27,7 +27,7 @@ def make_env():
         cfg = compose(config_name="vss_validation")
     cfg = omegaconf_to_dict(cfg)
     if args.atk_foul:
-        cfg['env']['atk_foul'] = 1.0
+        cfg['env']['rew_weights']['atk_foul'] = 1.0
     return VSS(
         cfg=cfg,
         rl_device="cuda:0",
