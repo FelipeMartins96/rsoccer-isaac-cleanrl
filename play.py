@@ -386,7 +386,7 @@ def play_matches(envs, blue_team, yellow_team, n_matches, video_path=None):
 
             win_ids = goal_score > 0
             loss_ids = goal_score < 0
-            draw_ids = goal_score == 0 & atk_fouls == 0
+            draw_ids = (goal_score == 0) & (atk_fouls == 0)
 
             results['wins'] += win_ids.sum().item()
             results['losses'] += loss_ids.sum().item()
