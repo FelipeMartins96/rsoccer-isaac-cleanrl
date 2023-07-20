@@ -382,7 +382,7 @@ def play_matches(envs, blue_team, yellow_team, n_matches, video_path=None):
         if len(env_ids):
             results['matches'] += len(env_ids)
             goal_score = rew[env_ids, 0, 0, 0]
-            atk_fouls = rew[env_ids, 0, 0, 1]
+            atk_fouls = rew[env_ids, 0, 0, 4]
 
             win_ids = goal_score > 0
             loss_ids = goal_score < 0
