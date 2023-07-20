@@ -1,4 +1,5 @@
 import argparse
+from distutils.util import strtobool
 from hydra import compose, initialize
 import isaacgym
 from isaacgymenvs.utils.reformat import omegaconf_to_dict
@@ -16,6 +17,7 @@ def parse_args():
         help="run env id")
     parser.add_argument("--model-path", type=str,
         help="model path")
+    parser.add_argument("--atk-foul", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     args = parser.parse_args()
     # fmt: on
     return args
@@ -24,6 +26,8 @@ def make_env():
     with initialize(config_path="envs/"):
         cfg = compose(config_name="vss_validation")
     cfg = omegaconf_to_dict(cfg)
+    if args.atk_foul:
+        cfg['env']['atk_foul'] = 1.0
     return VSS(
         cfg=cfg,
         rl_device="cuda:0",
@@ -41,7 +45,7 @@ if __name__ == "__main__":
     envs = make_env()
 
     api = wandb.Api()
-    bt_run = api.run(f"june-ep/{args.run_id}")
+    bt_run = api.run(f"july-rules/{args.run_id}")
     
     config = dict(bt_run.config)
     save_path = f"runs/validation/{config['exp_name']}/{args.env_id}/{args.run_id}"
@@ -50,7 +54,7 @@ if __name__ == "__main__":
         "env_id": args.env_id
     })
     run = wandb.init(
-        project='june-ep-validation',
+        project='july-rules-validation',
         monitor_gym=False,
         name=f"{config['exp_name']}-{args.env_id}",
         group=f"{config['exp_name']}-{args.env_id}",
@@ -67,6 +71,7 @@ if __name__ == "__main__":
         'wins': 0,
         'losses': 0,
         'draws': 0,
+        'atk_fouls': 0,
         'len_wins': 0,
         'len_losses': 0,
     }
@@ -78,6 +83,7 @@ if __name__ == "__main__":
             'wins': 0,
             'losses': 0,
             'draws': 0,
+            'atk_fouls': 0,
             'len_wins': 0,
             'len_losses': 0,
         }
@@ -91,6 +97,7 @@ if __name__ == "__main__":
             team_totals['wins'] += results['wins']
             team_totals['losses'] += results['losses']
             team_totals['draws'] += results['draws']
+            team_totals['atk_fouls'] += results['atk_fouls']
             team_totals['len_wins'] += results['len_wins']
             team_totals['len_losses'] += results['len_losses']
             
@@ -102,9 +109,10 @@ if __name__ == "__main__":
         
         run.summary[f"results/Score/{team}"] = (team_totals['wins'] - team_totals['losses']) / team_totals['matches']
         run.summary[f"results/Lenght/{team}"] = team_totals['match_steps'] / team_totals['matches']
-        run.summary[f"results/Win Rate/{team}"] = team_totals['wins'] / team_totals['matches']
-        run.summary[f"results/Loss Rate/{team}"] = team_totals['losses'] / team_totals['matches']
-        run.summary[f"results/Draw Rate/{team}"] = team_totals['draws'] / team_totals['matches']
+        run.summary[f"results/Rate Win/{team}"] = team_totals['wins'] / team_totals['matches']
+        run.summary[f"results/Rate Loss/{team}"] = team_totals['losses'] / team_totals['matches']
+        run.summary[f"results/Rate Draw/{team}"] = team_totals['draws'] / team_totals['matches']
+        run.summary[f'results/Rate Atk Foul/{team}'] = team_totals['atk_fouls'] / team_totals['matches']
         run.summary[f"results/Lenght Wins/{team}"] = (team_totals['len_wins'] / team_totals['wins']) if team_totals['wins'] else 0
         run.summary[f"results/Lenght Losses/{team}"] = (team_totals['len_losses'] / team_totals['losses']) if team_totals['losses'] else 0
     
@@ -113,24 +121,27 @@ if __name__ == "__main__":
         totals['wins'] += team_totals['wins']
         totals['losses'] += team_totals['losses']
         totals['draws'] += team_totals['draws']
+        totals['atk_fouls'] += team_totals['atk_fouls']
         totals['len_wins'] += team_totals['len_wins']
         totals['len_losses'] += team_totals['len_losses']
 
     run.summary["results/Score/zz-all"] = (totals['wins'] - totals['losses']) / totals['matches']
     run.summary["results/Lenght/zz-all"] = totals['match_steps'] / totals['matches']
-    run.summary["results/Win Rate/zz-all"] = totals['wins'] / totals['matches']
-    run.summary["results/Loss Rate/zz-all"] = totals['losses'] / totals['matches']
-    run.summary["results/Draw Rate/zz-all"] = totals['draws'] / totals['matches']
+    run.summary["results/Rate Win/zz-all"] = totals['wins'] / totals['matches']
+    run.summary["results/Rate Loss/zz-all"] = totals['losses'] / totals['matches']
+    run.summary["results/Rate Draw/zz-all"] = totals['draws'] / totals['matches']
+    run.summary['results/Rate Atk Foul/zz-all'] = totals['atk_fouls'] / totals['matches']
     run.summary["results/Lenght Wins/zz-all"] = (totals['len_wins'] / totals['wins']) if totals['wins'] else 0
     run.summary["results/Lenght Losses/zz-all"] = (totals['len_losses'] / totals['losses']) if totals['losses'] else 0
 
 
-    run.summary["results/all/Score"] = (totals['wins'] - totals['losses']) / totals['matches']
-    run.summary["results/all/Lenght"] = totals['match_steps'] / totals['matches']
-    run.summary["results/all/Win Rate"] = totals['wins'] / totals['matches']
-    run.summary["results/all/Loss Rate"] = totals['losses'] / totals['matches']
-    run.summary["results/all/Draw Rate"] = totals['draws'] / totals['matches']
-    run.summary["results/all/Lenght Wins"] = (totals['len_wins'] / totals['wins']) if totals['wins'] else 0
-    run.summary["results/all/Lenght Losses"] = (totals['len_losses'] / totals['losses']) if totals['losses'] else 0
+    run.summary["results/zz-all/Score"] = (totals['wins'] - totals['losses']) / totals['matches']
+    run.summary["results/zz-all/Lenght"] = totals['match_steps'] / totals['matches']
+    run.summary["results/zz-all/Rate Win"] = totals['wins'] / totals['matches']
+    run.summary["results/zz-all/Rate Loss"] = totals['losses'] / totals['matches']
+    run.summary["results/zz-all/Rate Draw"] = totals['draws'] / totals['matches']
+    run.summary['results/zz-all/Rate Atk Foul'] = totals['atk_fouls'] / totals['matches']
+    run.summary["results/zz-all/Lenght Wins"] = (totals['len_wins'] / totals['wins']) if totals['wins'] else 0
+    run.summary["results/zz-all/Lenght Losses"] = (totals['len_losses'] / totals['losses']) if totals['losses'] else 0
     
     wandb.finish()

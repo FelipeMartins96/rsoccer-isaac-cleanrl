@@ -365,6 +365,7 @@ def play_matches(envs, blue_team, yellow_team, n_matches, video_path=None):
         'wins': 0,
         'losses': 0,
         'draws': 0,
+        'atk_fouls': 0,
         'len_wins': 0,
         'len_losses': 0,
     }
@@ -381,14 +382,16 @@ def play_matches(envs, blue_team, yellow_team, n_matches, video_path=None):
         if len(env_ids):
             results['matches'] += len(env_ids)
             goal_score = rew[env_ids, 0, 0, 0]
+            atk_fouls = rew[env_ids, 0, 0, 1]
 
             win_ids = goal_score > 0
             loss_ids = goal_score < 0
-            draw_ids = goal_score == 0
+            draw_ids = goal_score == 0 & atk_fouls == 0
 
             results['wins'] += win_ids.sum().item()
             results['losses'] += loss_ids.sum().item()
             results['draws'] += draw_ids.sum().item()
+            results['atk_fouls'] += atk_fouls.sum().item()
 
             done_lengths = info['progress_buffer'][env_ids]
             results['match_steps'] += done_lengths.sum().item()

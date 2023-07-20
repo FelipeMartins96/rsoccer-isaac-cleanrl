@@ -46,6 +46,7 @@ class VSS(VecTask):
         self.w_grad = cfg['env']['rew_weights']['grad']
         self.w_move = cfg['env']['rew_weights']['move']
         self.w_energy = cfg['env']['rew_weights']['energy']
+        self.w_atk_foul = cfg['env']['rew_weights']['atk_foul']
         self.robot_max_wheel_rad_s = 42.0
         self.min_robot_placement_dist = 0.07
         self.cfg = cfg
@@ -91,7 +92,7 @@ class VSS(VecTask):
             dtype=torch.float,
         )
         self.rew_buf = torch.zeros(
-            (num_fields, NUM_TEAMS, NUM_ROBOTS, 4), device=device, dtype=torch.float
+            (num_fields, NUM_TEAMS, NUM_ROBOTS, 5), device=device, dtype=torch.float
         )
         self.reset_buf = torch.ones(num_fields, device=device, dtype=torch.long)
         self.timeout_buf = torch.zeros(num_fields, device=device, dtype=torch.long)
@@ -258,11 +259,15 @@ class VSS(VecTask):
             energy_rew = compute_energy_rew(self.dof_velocity_buf) * self.w_energy
             self.rew_buf[..., 3] += energy_rew
 
+        blue_atk_foul = compute_right_side_foul(self.ball_pos, self.robots_pos[:,0]) * self.w_atk_foul
+        self.rew_buf[:,0,:,4] += blue_atk_foul.unsqueeze(1)
+
         # Dones
         self.reset_buf = compute_vss_dones(
             ball_pos=self.ball_pos,
             reset_buf=self.reset_buf,
             progress_buf=self.progress_buf,
+            blue_atk_foul=blue_atk_foul,
             max_episode_length=self.max_episode_length,
             field_width=self.field_width,
             goal_height=self.goal_height,
@@ -671,11 +676,12 @@ def compute_vss_dones(
     ball_pos,
     reset_buf,
     progress_buf,
+    blue_atk_foul,
     max_episode_length,
     field_width,
     goal_height,
 ):
-    # type: (Tensor, Tensor, Tensor, float, float, float) -> Tensor
+    # type: (Tensor, Tensor, Tensor, Tensor, float, float, float) -> Tensor
 
     # CHECK GOAL
     is_goal = (torch.abs(ball_pos[:, 0]) > (field_width / 2)) & (
@@ -685,6 +691,21 @@ def compute_vss_dones(
     reset = torch.zeros_like(reset_buf)
 
     reset = torch.where(is_goal, ones, reset)
+    reset = torch.where(blue_atk_foul != 0, ones, reset)
     reset = torch.where(progress_buf >= max_episode_length, ones, reset)
 
     return reset
+
+@torch.jit.script
+def compute_right_side_foul(
+    ball_pos,
+    robots_pos,
+):
+    # type: (Tensor, Tensor) -> Tensor
+    # CHECK IF BALL IS IN ENEMY GOAL AREA
+    is_ball_inside = (ball_pos[:, 0] > 0.6) & (torch.abs(ball_pos[:, 1]) < 0.35)
+
+    # CHECK IF ROBOT IS IN ENEMY GOAL AREA
+    is_robot_inside = (robots_pos[..., 0] > 0.6) & (torch.abs(robots_pos[..., 1]) < 0.35)
+    
+    return is_ball_inside & (is_robot_inside.sum(1) > 1)

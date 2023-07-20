@@ -59,7 +59,7 @@ def parse_args():
         help="if toggled, cuda will be enabled by default")
     parser.add_argument("--track", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="if toggled, this experiment will be tracked with Weights and Biases")
-    parser.add_argument("--wandb-project-name", type=str, default="june-ep",
+    parser.add_argument("--wandb-project-name", type=str, default="july-rules",
         help="the wandb's project name")
     parser.add_argument("--wandb-entity", type=str, default=None,
         help="the entity (team) of wandb's project")    
@@ -122,6 +122,7 @@ def parse_args():
     parser.add_argument("--no-move", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     parser.add_argument("--no-energy", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True)
     parser.add_argument("--speed-factor", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True)
+    parser.add_argument("--atk-foul", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     parser.add_argument("--speed-factor-end", type=float, default=0.5)
     parser.add_argument("--enemy-policy", type=str, default="ou",
         help="the enemy team policy pool id")
