@@ -45,7 +45,7 @@ if __name__ == "__main__":
     envs = make_env()
 
     api = wandb.Api()
-    bt_run = api.run(f"july-rules/{args.run_id}")
+    bt_run = api.run(f"isaac-reducing-move-bias/{args.run_id}")
     
     config = dict(bt_run.config)
     save_path = f"runs/validation/{config['exp_name']}/{args.env_id}/{args.run_id}"
@@ -54,7 +54,7 @@ if __name__ == "__main__":
         "env_id": args.env_id
     })
     run = wandb.init(
-        project='july-rules-validation',
+        project='isaac-reducing-move-bias-validation',
         monitor_gym=False,
         name=f"{config['exp_name']}-{args.env_id}",
         group=f"{config['exp_name']}-{args.env_id}",

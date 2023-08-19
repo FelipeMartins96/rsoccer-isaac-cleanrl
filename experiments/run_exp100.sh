@@ -1,6 +1,6 @@
-EXP_NAME="exp026"
-EXP_NOTES="atk-foul_3.5kk_.75x3-ou-zero"
-EXP_ARGS="--enemy-policy .75x3-ou-zero --no-energy False --atk-foul --total-timesteps 3500000000"
+EXP_NAME="exp100"
+EXP_NOTES="baseline"
+EXP_ARGS=""
 case $1 in
 0) xvfb-run -a python ppo_continuous_action_isaacgym.py --exp-name $EXP_NAME --wandb-notes="$EXP_NOTES" $EXP_ARGS --env-id sa  --seed 10 --track --capture-video;;
 1) xvfb-run -a python ppo_continuous_action_isaacgym.py --exp-name $EXP_NAME --wandb-notes="$EXP_NOTES" $EXP_ARGS --env-id cma --seed 10 --track --capture-video;;

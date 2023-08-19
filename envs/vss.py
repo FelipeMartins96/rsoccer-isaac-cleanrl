@@ -47,7 +47,7 @@ class VSS(VecTask):
         self.w_move = cfg['env']['rew_weights']['move']
         self.w_energy = cfg['env']['rew_weights']['energy']
         self.w_atk_foul = cfg['env']['rew_weights']['atk_foul']
-        self.robot_max_wheel_rad_s = 42.0
+        self.robot_max_wheel_rad_s = 50.0
         self.min_robot_placement_dist = 0.07
         self.cfg = cfg
         super().__init__(

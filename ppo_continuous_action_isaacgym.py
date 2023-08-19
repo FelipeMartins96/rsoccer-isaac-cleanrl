@@ -59,7 +59,7 @@ def parse_args():
         help="if toggled, cuda will be enabled by default")
     parser.add_argument("--track", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="if toggled, this experiment will be tracked with Weights and Biases")
-    parser.add_argument("--wandb-project-name", type=str, default="july-rules",
+    parser.add_argument("--wandb-project-name", type=str, default="isaac-reducing-move-bias",
         help="the wandb's project name")
     parser.add_argument("--wandb-entity", type=str, default=None,
         help="the entity (team) of wandb's project")    
@@ -71,7 +71,7 @@ def parse_args():
     # Algorithm specific arguments
     parser.add_argument("--env-id", type=str, default="sa",
         help="the id of the environment")
-    parser.add_argument("--total-timesteps", type=int, default=2500000000,
+    parser.add_argument("--total-timesteps", type=int, default=1000000000,
         help="total timesteps of the experiments")
     parser.add_argument("--learning-rate", type=float, default=0.001,
         help="the learning rate of the optimizer")
@@ -120,7 +120,7 @@ def parse_args():
     parser.add_argument("--check-speed", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     parser.add_argument("--hierarchical", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     parser.add_argument("--no-move", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
-    parser.add_argument("--no-energy", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True)
+    parser.add_argument("--no-energy", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     parser.add_argument("--speed-factor", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True)
     parser.add_argument("--atk-foul", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     parser.add_argument("--speed-factor-end", type=float, default=0.5)
