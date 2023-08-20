@@ -6,10 +6,10 @@ env:
   maxEpisodeLength: 600
   clipActions: 1
   rew_weights:
-    goal: 100
-    grad: 24
-    move: 20
-    energy: 0.0005
+    goal: 10
+    grad: 2
+    move: 3
+    energy: 0.002
     atk_foul: -1
 sim:
   use_gpu_pipeline: True
