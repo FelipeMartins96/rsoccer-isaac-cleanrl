@@ -7,7 +7,7 @@ env:
   clipActions: 1
   rew_weights:
     goal: 10
-    grad: 3
+    grad: 2
     move: 3
     energy: 0.0005
     atk_foul: -1
