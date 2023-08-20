@@ -9,7 +9,7 @@ env:
     goal: 10
     grad: 3
     move: 3
-    energy: 0.002
+    energy: 0.0005
     atk_foul: -1
 sim:
   use_gpu_pipeline: True
