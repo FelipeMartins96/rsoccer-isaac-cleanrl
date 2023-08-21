@@ -7,9 +7,9 @@ env:
   clipActions: 1
   rew_weights:
     goal: 10
-    grad: 2
-    move: 3
-    energy: 0.0005
+    grad: 44
+    move: 56
+    energy: 0.001
     atk_foul: -1
 sim:
   use_gpu_pipeline: True
