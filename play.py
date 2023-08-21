@@ -331,14 +331,14 @@ BASELINE_TEAMS = {
         '50': get_team('ppo-sa-x3', 'exp102/SA/agent-fs66dxjn.pt'), # TODO: remove is old
     },
     'ppo-cma': {
-        '20': get_team('ppo-cma', 'exp000/JAL/agent-eiqacdzv.pt'), # TODO: remove is old
-        '40': get_team('ppo-cma', 'exp000/JAL/agent-0arp1jm1.pt'), # TODO: remove is old
-        '50': get_team('ppo-cma', 'exp000/JAL/agent-qps0le0n.pt'), # TODO: remove is old
+        '20': get_team('ppo-cma', 'exp102/JAL/agent-eiqacdzv.pt'), # TODO: remove is old
+        '40': get_team('ppo-cma', 'exp102/JAL/agent-0arp1jm1.pt'), # TODO: remove is old
+        '50': get_team('ppo-cma', 'exp102/JAL/agent-qps0le0n.pt'), # TODO: remove is old
     },
     'ppo-dma': {
-        '10': get_team('ppo-dma', 'exp000/IL/agent-qdbxuop3.pt'), # TODO: remove is old
-        '20': get_team('ppo-dma', 'exp000/IL/agent-jpjvv3nx.pt'), # TODO: remove is old
-        '40': get_team('ppo-dma', 'exp000/IL/agent-49ca8j77.pt'), # TODO: remove is old
+        '10': get_team('ppo-dma', 'exp102/IL/agent-qdbxuop3.pt'), # TODO: remove is old
+        '20': get_team('ppo-dma', 'exp102/IL/agent-jpjvv3nx.pt'), # TODO: remove is old
+        '40': get_team('ppo-dma', 'exp102/IL/agent-49ca8j77.pt'), # TODO: remove is old
     },
     'zero': {'00': get_team('zero')},
     'ou': {'00': get_team('ou')},
