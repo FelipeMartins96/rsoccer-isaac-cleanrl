@@ -15,11 +15,11 @@ for experiment in experiments:
                 env_id = run_name.split('-')[-1]
                 run_id = model.split('.')[0].split('-')[-1]
 
-                f.write(f'{case_counter}) xvfb-run -a python validation.py --env-id {env_id} --run-id {run_id} --model-path {model_path} --atk-foul;;\n')
+                f.write(f'{case_counter}) xvfb-run -a python validation.py --env-id {env_id} --run-id {run_id} --model-path {model_path};;\n')
                 case_counter += 1
 
                 if env_id == 'sa':
-                    f.write(f'{case_counter}) xvfb-run -a python validation.py --env-id {env_id}-x3 --run-id {run_id} --model-path {model_path} --atk-foul;;\n')
+                    f.write(f'{case_counter}) xvfb-run -a python validation.py --env-id {env_id}-x3 --run-id {run_id} --model-path {model_path};;\n')
                     case_counter += 1
         f.write('*) echo "Opcao Invalida!" ;;\n')
         f.write('esac\n')
