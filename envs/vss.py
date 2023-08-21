@@ -638,16 +638,16 @@ def compute_goal_rew(reset_buf, ball_pos, field_width, goal_height):
 def compute_grad_rew(prev_ball_pos, ball_pos, yellow_goal):
     # type: (Tensor, Tensor, Tensor) -> Tensor
 
-    ball_pos[:, 1] *= 2
+    y_scale = torch.tensor([1,2])
 
     # Prev Pot
-    dist_ball_left_goal = torch.norm(prev_ball_pos - (-yellow_goal), dim=1)
-    dist_ball_right_goal = torch.norm(prev_ball_pos - yellow_goal, dim=1)
+    dist_ball_left_goal = torch.norm((prev_ball_pos - (-yellow_goal))*y_scale, dim=1)
+    dist_ball_right_goal = torch.norm((prev_ball_pos - yellow_goal)*y_scale, dim=1)
     prev_pot = dist_ball_left_goal - dist_ball_right_goal
 
     # New Pot
-    dist_ball_left_goal = torch.norm(ball_pos - (-yellow_goal), dim=1)
-    dist_ball_right_goal = torch.norm(ball_pos - yellow_goal, dim=1)
+    dist_ball_left_goal = torch.norm((ball_pos - (-yellow_goal))*y_scale, dim=1)
+    dist_ball_right_goal = torch.norm((ball_pos - yellow_goal)*y_scale, dim=1)
     pot = dist_ball_left_goal - dist_ball_right_goal
 
     grad = (pot - prev_pot).view(-1, 1, 1).expand(-1, 1, 3)
