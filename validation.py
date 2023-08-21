@@ -107,14 +107,14 @@ if __name__ == "__main__":
                 run.log({f"Media/{team}/{seed}": wandb.Video(f"{save_path}/val_{team}_{seed}/video.000-step-0.mp4")})
 
         
-        run.summary[f"results/Score/{team}"] = (team_totals['wins'] - team_totals['losses']) / team_totals['matches']
-        run.summary[f"results/Lenght/{team}"] = team_totals['match_steps'] / team_totals['matches']
-        run.summary[f"results/Rate Win/{team}"] = team_totals['wins'] / team_totals['matches']
-        run.summary[f"results/Rate Loss/{team}"] = team_totals['losses'] / team_totals['matches']
-        run.summary[f"results/Rate Draw/{team}"] = team_totals['draws'] / team_totals['matches']
-        run.summary[f'results/Rate Atk Foul/{team}'] = team_totals['atk_fouls'] / team_totals['matches']
-        run.summary[f"results/Lenght Wins/{team}"] = (team_totals['len_wins'] / team_totals['wins']) if team_totals['wins'] else 0
-        run.summary[f"results/Lenght Losses/{team}"] = (team_totals['len_losses'] / team_totals['losses']) if team_totals['losses'] else 0
+        # run.summary[f"results/Score/{team}"] = (team_totals['wins'] - team_totals['losses']) / team_totals['matches']
+        # run.summary[f"results/Lenght/{team}"] = team_totals['match_steps'] / team_totals['matches']
+        # run.summary[f"results/Rate Win/{team}"] = team_totals['wins'] / team_totals['matches']
+        # run.summary[f"results/Rate Loss/{team}"] = team_totals['losses'] / team_totals['matches']
+        # run.summary[f"results/Rate Draw/{team}"] = team_totals['draws'] / team_totals['matches']
+        # run.summary[f'results/Rate Atk Foul/{team}'] = team_totals['atk_fouls'] / team_totals['matches']
+        # run.summary[f"results/Lenght Wins/{team}"] = (team_totals['len_wins'] / team_totals['wins']) if team_totals['wins'] else 0
+        # run.summary[f"results/Lenght Losses/{team}"] = (team_totals['len_losses'] / team_totals['losses']) if team_totals['losses'] else 0
     
         totals['matches'] += team_totals['matches']
         totals['match_steps'] += team_totals['match_steps']
@@ -125,23 +125,28 @@ if __name__ == "__main__":
         totals['len_wins'] += team_totals['len_wins']
         totals['len_losses'] += team_totals['len_losses']
 
-    run.summary["results/Score/zz-all"] = (totals['wins'] - totals['losses']) / totals['matches']
-    run.summary["results/Lenght/zz-all"] = totals['match_steps'] / totals['matches']
-    run.summary["results/Rate Win/zz-all"] = totals['wins'] / totals['matches']
-    run.summary["results/Rate Loss/zz-all"] = totals['losses'] / totals['matches']
-    run.summary["results/Rate Draw/zz-all"] = totals['draws'] / totals['matches']
-    run.summary['results/Rate Atk Foul/zz-all'] = totals['atk_fouls'] / totals['matches']
-    run.summary["results/Lenght Wins/zz-all"] = (totals['len_wins'] / totals['wins']) if totals['wins'] else 0
-    run.summary["results/Lenght Losses/zz-all"] = (totals['len_losses'] / totals['losses']) if totals['losses'] else 0
+    mean_len_wins = totals['len_wins'] / totals['wins'] if totals['wins'] else 0
+    mean_len_losses = totals['len_losses'] / totals['losses'] if totals['losses'] else 0
+
+    run.summary["0-Score"] = (totals['wins'] - totals['losses']) / totals['matches']
+    run.summary["1-Score 2"] = (((totals['wins'] * (1 - (mean_len_wins/600)) - (totals['losses'] * (1 - (mean_len_losses/600)))) / totals['matches']) + 1)/2
+    run.summary["2-Lenght"] = totals['match_steps'] / totals['matches']
+    run.summary["3-Lenght Wins"] = mean_len_wins
+    run.summary["4-Lenght Losses"] = mean_len_losses
+    run.summary["5-Total Wins"] = totals['wins']
+    run.summary["6-Total Losses"] = totals['losses']
+    run.summary["7-Total Draws"] = totals['draws']
+    run.summary['8-Total Atk Fouls'] = totals['atk_fouls']
+    run.summary['9-Matches'] = totals['matches']
 
 
-    run.summary["results/zz-all/Score"] = (totals['wins'] - totals['losses']) / totals['matches']
-    run.summary["results/zz-all/Lenght"] = totals['match_steps'] / totals['matches']
-    run.summary["results/zz-all/Rate Win"] = totals['wins'] / totals['matches']
-    run.summary["results/zz-all/Rate Loss"] = totals['losses'] / totals['matches']
-    run.summary["results/zz-all/Rate Draw"] = totals['draws'] / totals['matches']
-    run.summary['results/zz-all/Rate Atk Foul'] = totals['atk_fouls'] / totals['matches']
-    run.summary["results/zz-all/Lenght Wins"] = (totals['len_wins'] / totals['wins']) if totals['wins'] else 0
-    run.summary["results/zz-all/Lenght Losses"] = (totals['len_losses'] / totals['losses']) if totals['losses'] else 0
+    # run.summary["results/zz-all/Score"] = (totals['wins'] - totals['losses']) / totals['matches']
+    # run.summary["results/zz-all/Lenght"] = totals['match_steps'] / totals['matches']
+    # run.summary["results/zz-all/Rate Win"] = totals['wins'] / totals['matches']
+    # run.summary["results/zz-all/Rate Loss"] = totals['losses'] / totals['matches']
+    # run.summary["results/zz-all/Rate Draw"] = totals['draws'] / totals['matches']
+    # run.summary['results/zz-all/Rate Atk Foul'] = totals['atk_fouls'] / totals['matches']
+    # run.summary["results/zz-all/Lenght Wins"] = (totals['len_wins'] / totals['wins']) if totals['wins'] else 0
+    # run.summary["results/zz-all/Lenght Losses"] = (totals['len_losses'] / totals['losses']) if totals['losses'] else 0
     
     wandb.finish()

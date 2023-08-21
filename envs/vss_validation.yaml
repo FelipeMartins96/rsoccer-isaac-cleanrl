@@ -3,7 +3,7 @@ env:
   numEnvs: 1365
   numObservations: 52
   numActions: 2
-  maxEpisodeLength: 400
+  maxEpisodeLength: 600
   clipActions: 1
   rew_weights:
     goal: 1
