@@ -3,16 +3,16 @@ env:
   numEnvs: 4095
   numObservations: 52
   numActions: 2
-  maxEpisodeLength: 600
+  maxEpisodeLength: 1200
   clipActions: 1
   rew_weights:
     goal: 10
-    grad: 2
-    move: 3
+    grad: 24
+    move: 54
     energy: 0.02
     atk_foul: -1
 sim:
   use_gpu_pipeline: True
   up_axis: 'z'
-  dt: 0.05
+  dt: 0.025
   gravity: [0.0, 0.0, -9.81]
