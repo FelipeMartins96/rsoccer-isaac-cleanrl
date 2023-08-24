@@ -411,6 +411,17 @@ if __name__ == "__main__":
             if args.target_kl is not None:
                 if approx_kl > args.target_kl:
                     break
+        
+        if (update % (num_updates // (args.total_timesteps / 100000000))) == 0 or update == num_updates:
+            save_dict = OrderedDict([
+                ("env_id", args.env_id),
+                ("state_dict", agent.state_dict()),
+                ('n_obs', np.array(envs.single_observation_space.shape).prod()),
+                ('n_acts', np.prod(envs.single_action_space.shape)),
+                ('run_id', wandb.run.id),
+            ])
+            torch.save(save_dict, f"{save_path}/{wandb.run.id}/{global_step}.pt")
+            wandb.save(f"{save_path}/agent-{wandb.run.id}/{global_step}.pt")
 
         # TRY NOT TO MODIFY: record rewards for plotting purposes
         writer.add_scalar("losses/learning_rate", optimizer.param_groups[0]["lr"], global_step)
