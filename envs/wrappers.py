@@ -1,7 +1,7 @@
 import gym
 import numpy as np
 import torch
-from play import OLD_Agent, BASELINE_TEAMS
+from play import OLD_Agent, TRAINING_TEAMS
 from math import ceil
 
 def random_ou(prev):
@@ -164,66 +164,43 @@ class RecordEpisodeStatisticsTorch(gym.Wrapper):
         )
 
 def get_policies_list(num_envs, pool):
-    if pool == 'ou':
-        return [(torch.arange(num_envs), BASELINE_TEAMS['ou']['00'])]
-    elif pool == 'zero':
-        return [(torch.arange(num_envs), BASELINE_TEAMS['zero']['00'])]
-    elif pool == 'x3':
-        return [(torch.arange(num_envs), BASELINE_TEAMS['ppo-sa-x3']['20'])]
-    elif pool == '.75x3-ou-zero':
-        idxs = torch.arange(num_envs).split([round(num_envs*0.75), round(num_envs*0.125), round(num_envs*0.125)])
-        return [
-            (idxs[0], BASELINE_TEAMS['ppo-sa-x3']['20']),
-            (idxs[1], BASELINE_TEAMS['ou']['00']),
-            (idxs[2], BASELINE_TEAMS['zero']['00']),
-        ]
-    elif pool == 'x3-ou-zero':
+    if pool == 'OU':
+        return [(torch.arange(num_envs), TRAINING_TEAMS['OU'])]
+    elif pool == 'ZERO':
+        return [(torch.arange(num_envs), TRAINING_TEAMS['ZERO'])]
+    elif pool == 'RSA':
+        return [(torch.arange(num_envs), TRAINING_TEAMS['RSA'])]
+    elif pool == 'RSA-OU-ZERO':
         idxs = torch.arange(num_envs).split(ceil(num_envs/3))
         return [
-            (idxs[0], BASELINE_TEAMS['ppo-sa-x3']['20']),
-            (idxs[1], BASELINE_TEAMS['ou']['00']),
-            (idxs[2], BASELINE_TEAMS['zero']['00']),
+            (idxs[0], TRAINING_TEAMS['RSA']),
+            (idxs[1], TRAINING_TEAMS['OU']),
+            (idxs[2], TRAINING_TEAMS['ZERO']),
         ]
-    elif pool == 'x3-cma-dma-ou-zero':
+    elif pool == 'RSA-IL-JAL-OU-ZERO':
         idxs = torch.arange(num_envs).split(ceil(num_envs/5))
         return [
-            (idxs[0], BASELINE_TEAMS['ppo-sa-x3']['20']),
-            (idxs[1], BASELINE_TEAMS['ppo-cma']['30']),
-            (idxs[2], BASELINE_TEAMS['ppo-dma']['10']),
-            (idxs[3], BASELINE_TEAMS['ou']['00']),
-            (idxs[4], BASELINE_TEAMS['zero']['00']),
+            (idxs[0], TRAINING_TEAMS['RSA']),
+            (idxs[1], TRAINING_TEAMS['IL']),
+            (idxs[2], TRAINING_TEAMS['JAL']),
+            (idxs[3], TRAINING_TEAMS['OU']),
+            (idxs[4], TRAINING_TEAMS['ZERO']),
         ]
-    elif pool == 'x3-cma-dma':
-        idxs = torch.arange(num_envs).split(ceil(num_envs/3))
-        return [
-            (idxs[0], BASELINE_TEAMS['ppo-sa-x3']['20']),
-            (idxs[1], BASELINE_TEAMS['ppo-cma']['30']),
-            (idxs[2], BASELINE_TEAMS['ppo-dma']['10']),
-        ]
-    elif pool == '.25x3-.25cma-.25dma-ou-zero':
-        idxs = torch.arange(num_envs).split([round(num_envs*0.25), round(num_envs*0.25), round(num_envs*0.25), round(num_envs*0.125), round(num_envs*0.125)])
-        return [
-            (idxs[0], BASELINE_TEAMS['ppo-sa-x3']['20']),
-            (idxs[1], BASELINE_TEAMS['ppo-cma']['30']),
-            (idxs[2], BASELINE_TEAMS['ppo-dma']['10']),
-            (idxs[3], BASELINE_TEAMS['ou']['00']),
-            (idxs[4], BASELINE_TEAMS['zero']['00']),
-        ]
-    elif pool == '.3x3-.3cma-.3dma-ou-zero':
+    elif pool == 'RSA.3-IL.3-JAL.3-OU-ZERO':
         idxs = torch.arange(num_envs).split([round(num_envs*0.3), round(num_envs*0.3), round(num_envs*0.3), round(num_envs*0.05), round(num_envs*0.05)])
         return [
-            (idxs[0], BASELINE_TEAMS['ppo-sa-x3']['20']),
-            (idxs[1], BASELINE_TEAMS['ppo-cma']['30']),
-            (idxs[2], BASELINE_TEAMS['ppo-dma']['10']),
-            (idxs[3], BASELINE_TEAMS['ou']['00']),
-            (idxs[4], BASELINE_TEAMS['zero']['00']),
+            (idxs[0], TRAINING_TEAMS['RSA']),
+            (idxs[1], TRAINING_TEAMS['IL']),
+            (idxs[2], TRAINING_TEAMS['JAL']),
+            (idxs[3], TRAINING_TEAMS['OU']),
+            (idxs[4], TRAINING_TEAMS['ZERO']),
         ]
-    elif pool == '.9x3-ou-zero':
-        idxs = torch.arange(num_envs).split([round(num_envs*0.9), round(num_envs*0.05), round(num_envs*0.05)])
+    elif pool == 'RSA.75-OU-ZERO':
+        idxs = torch.arange(num_envs).split([round(num_envs*0.75), round(num_envs*0.125), round(num_envs*0.125)])
         return [
-            (idxs[0], BASELINE_TEAMS['ppo-sa-x3']['20']),
-            (idxs[1], BASELINE_TEAMS['ou']['00']),
-            (idxs[2], BASELINE_TEAMS['zero']['00']),
+            (idxs[0], TRAINING_TEAMS['RSA']),
+            (idxs[1], TRAINING_TEAMS['OU']),
+            (idxs[2], TRAINING_TEAMS['ZERO']),
         ]
     else:
         raise NotImplementedError # Invalid policies pool name

@@ -124,7 +124,7 @@ def parse_args():
     parser.add_argument("--speed-factor", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True)
     parser.add_argument("--atk-foul", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True)
     parser.add_argument("--speed-factor-end", type=float, default=0.5)
-    parser.add_argument("--enemy-policy", type=str, default="ou",
+    parser.add_argument("--enemy-policy", type=str, default="OU",
         help="the enemy team policy pool id")
 
     args = parser.parse_args()

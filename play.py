@@ -344,6 +344,13 @@ BASELINE_TEAMS = {
     'ou': {'00': get_team('ou')},
 }
 
+TRAINING_TEAMS = {
+    'RSA': get_team('ppo-sa-x3', 'exp111/SA/agent-vurmp0br.pt'),
+    'IL': get_team('ppo-dma', 'exp111/IL/agent-sjn3f576.pt'),
+    'JAL': get_team('ppo-cma', 'exp111/JAL/agent-480r4lym.pt'),
+    'ZERO': get_team('zero'),
+    'OU': get_team('ou'),
+}
 
 def play_matches(envs, blue_team, yellow_team, n_matches, video_path=None):
     envs.reset_buf[:] = 1
