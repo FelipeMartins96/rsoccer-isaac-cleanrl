@@ -321,24 +321,24 @@ def get_team(algo, path=None, hrl=False, is_old=False):
 
 BASELINE_TEAMS = {
     'ppo-sa': {
-        '20': get_team('ppo-sa', 'exp111/SA/agent-qf4nygj7.pt'), # TODO: remove is old
         '40': get_team('ppo-sa', 'exp111/SA/agent-bgle3syc.pt'), # TODO: remove is old
+        '20': get_team('ppo-sa', 'exp111/SA/agent-qf4nygj7.pt'), # TODO: remove is old
         '50': get_team('ppo-sa', 'exp111/SA/agent-w4upy1ma.pt'), # TODO: remove is old
     },
     'ppo-sa-x3': {
-        '20': get_team('ppo-sa-x3', 'exp111/SA/agent-qf4nygj7.pt'), # TODO: remove is old
         '40': get_team('ppo-sa-x3', 'exp111/SA/agent-bgle3syc.pt'), # TODO: remove is old
+        '20': get_team('ppo-sa-x3', 'exp111/SA/agent-qf4nygj7.pt'), # TODO: remove is old
         '50': get_team('ppo-sa-x3', 'exp111/SA/agent-w4upy1ma.pt'), # TODO: remove is old
     },
-    'ppo-cma': {
-        '10': get_team('ppo-cma', 'exp111/JAL/agent-ixckv9x8.pt'), # TODO: remove is old
-        '30': get_team('ppo-cma', 'exp111/JAL/agent-sjn3f576.pt'), # TODO: remove is old
-        '50': get_team('ppo-cma', 'exp111/JAL/agent-r5ehiiu7.pt'), # TODO: remove is old
-    },
     'ppo-dma': {
-        '10': get_team('ppo-dma', 'exp111/IL/agent-tuikdde1.pt'), # TODO: remove is old
-        '20': get_team('ppo-dma', 'exp111/IL/agent-480r4lym.pt'), # TODO: remove is old
-        '40': get_team('ppo-dma', 'exp111/IL/agent-hrw8nimy.pt'), # TODO: remove is old
+        '20': get_team('ppo-dma', 'exp111/IL/agent-cs8xl7zz.pt'), # TODO: remove is old
+        '10': get_team('ppo-dma', 'exp111/IL/agent-ixckv9x8.pt'), # TODO: remove is old
+        '40': get_team('ppo-dma', 'exp111/IL/agent-mmj3ow6l.pt'), # TODO: remove is old
+    },
+    'ppo-cma': {
+        '10': get_team('ppo-cma', 'exp111/JAL/agent-tuikdde1.pt'), # TODO: remove is old
+        '30': get_team('ppo-cma', 'exp111/JAL/agent-82bj23f8.pt'), # TODO: remove is old
+        '50': get_team('ppo-cma', 'exp111/JAL/agent-4an7994j.pt'), # TODO: remove is old
     },
     'zero': {'00': get_team('zero')},
     'ou': {'00': get_team('ou')},
