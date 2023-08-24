@@ -1,5 +1,5 @@
-EXP_NAME="exp107"
-EXP_NOTES="old proportions gamma .95"
+EXP_NAME="exp110"
+EXP_NOTES="107 modifies"
 EXP_ARGS="--gamma 0.95"
 case $1 in
 0) xvfb-run -a python ppo_continuous_action_isaacgym.py --exp-name $EXP_NAME --wandb-notes="$EXP_NOTES" $EXP_ARGS --env-id sa  --seed 10 --track --capture-video;;
