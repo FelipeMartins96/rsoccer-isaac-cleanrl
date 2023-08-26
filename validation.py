@@ -6,7 +6,7 @@ from isaacgymenvs.utils.reformat import omegaconf_to_dict
 import wandb
 from envs.vss import VSS
 from play import play_matches, get_team, BASELINE_TEAMS
-
+import os
 
 def parse_args():
     # fmt: off
@@ -60,6 +60,31 @@ if __name__ == "__main__":
         group=f"{config['exp_name']}-{args.env_id}",
         config=config,
     )
+    
+    intermediate = [m for m in os.listdir(os.path.join(os.path.dirname(args.model_path), args.run_id)) if '.pt' in m]
+    
+    # sort intermediate_models by integer before .pt suffix
+    intermediate.sort(key=lambda x: int(x.split('.')[0]))
+
+    for im in intermediate:
+        blue_team = get_team(run_name, os.path.join(os.path.dirname(args.model_path), args.run_id, im), bt_run.config['hierarchical'], is_old=False)
+        results_zero = play_matches(envs, blue_team, BASELINE_TEAMS['zero']['0'], 1000, None)
+        results_rsa = play_matches(envs, blue_team, BASELINE_TEAMS['ppo-sa-x3']['40'], 1000, None)
+
+        zero_mean_len_wins = results_zero['len_wins'] / results_zero['wins'] if results_zero['wins'] else 0
+        zero_mean_len_losses = results_zero['len_losses'] / results_zero['losses'] if results_zero['losses'] else 0
+
+        rsa_mean_len_wins = results_rsa['len_wins'] / results_rsa['wins'] if results_rsa['wins'] else 0
+        rsa_mean_len_losses = results_rsa['len_losses'] / results_rsa['losses'] if results_rsa['losses'] else 0
+
+        log = {
+            'global_step': int(im.split('.')[0]),
+            'RATING-zero': (results_zero['wins'] - results_zero['losses']) / results_zero['matches'],
+            'RATING2-zeo': (((results_zero['wins'] * (1 - (zero_mean_len_wins/600)) - (results_zero['losses'] * (1 - (zero_mean_len_losses/600)))) / results_zero['matches']) + 1)/2,
+            'RATING-rsa': (results_rsa['wins'] - results_rsa['losses']) / results_rsa['matches'],
+            'RATING2-zeo': (((results_rsa['wins'] * (1 - (rsa_mean_len_wins/600)) - (results_rsa['losses'] * (1 - (rsa_mean_len_losses/600)))) / results_rsa['matches']) + 1)/2
+        }
+        wandb.log(log)
 
     #TODO: remove is_old
     blue_team = get_team(run_name, args.model_path, bt_run.config['hierarchical'], is_old=False)
