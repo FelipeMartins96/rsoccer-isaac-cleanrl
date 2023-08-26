@@ -80,9 +80,9 @@ if __name__ == "__main__":
         log = {
             'global_step': int(im.split('.')[0]),
             'RATING-zero': (results_zero['wins'] - results_zero['losses']) / results_zero['matches'],
-            'RATING2-zeo': (((results_zero['wins'] * (1 - (zero_mean_len_wins/600)) - (results_zero['losses'] * (1 - (zero_mean_len_losses/600)))) / results_zero['matches']) + 1)/2,
+            'RATING2-zero': (((results_zero['wins'] * (1 - (zero_mean_len_wins/600)) - (results_zero['losses'] * (1 - (zero_mean_len_losses/600)))) / results_zero['matches']) + 1)/2,
             'RATING-rsa': (results_rsa['wins'] - results_rsa['losses']) / results_rsa['matches'],
-            'RATING2-zeo': (((results_rsa['wins'] * (1 - (rsa_mean_len_wins/600)) - (results_rsa['losses'] * (1 - (rsa_mean_len_losses/600)))) / results_rsa['matches']) + 1)/2
+            'RATING2-rsa': (((results_rsa['wins'] * (1 - (rsa_mean_len_wins/600)) - (results_rsa['losses'] * (1 - (rsa_mean_len_losses/600)))) / results_rsa['matches']) + 1)/2
         }
         wandb.log(log)
 
