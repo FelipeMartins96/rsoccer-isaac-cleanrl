@@ -177,6 +177,13 @@ def get_policies_list(num_envs, pool):
             (idxs[1], TRAINING_TEAMS['OU']),
             (idxs[2], TRAINING_TEAMS['ZERO']),
         ]
+    elif pool == 'RSA-IL-JAL':
+        idxs = torch.arange(num_envs).split(ceil(num_envs/3))
+        return [
+            (idxs[0], TRAINING_TEAMS['RSA']),
+            (idxs[1], TRAINING_TEAMS['IL']),
+            (idxs[2], TRAINING_TEAMS['JAL']),
+        ]
     elif pool == 'RSA-IL-JAL-OU-ZERO':
         idxs = torch.arange(num_envs).split(ceil(num_envs/5))
         return [
