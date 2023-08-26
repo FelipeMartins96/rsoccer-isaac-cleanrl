@@ -1,6 +1,6 @@
 EXP_NAME="exp126"
 EXP_NOTES="atk-foul vs RSA ep"
-EXP_ARGS="--atk-foul --enemy-policy RSA --total-timesteps 250000000"
+EXP_ARGS="--atk-foul --enemy-policy RSA --total-timesteps 2500000000"
 case $1 in
 0) xvfb-run -a python ppo_continuous_action_isaacgym.py --exp-name $EXP_NAME --wandb-notes="$EXP_NOTES" $EXP_ARGS --env-id sa  --seed 10 --track --capture-video;;
 1) xvfb-run -a python ppo_continuous_action_isaacgym.py --exp-name $EXP_NAME --wandb-notes="$EXP_NOTES" $EXP_ARGS --env-id cma --seed 10 --track --capture-video;;
