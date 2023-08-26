@@ -68,7 +68,7 @@ if __name__ == "__main__":
 
     for im in intermediate:
         blue_team = get_team(run_name, os.path.join(os.path.dirname(args.model_path), args.run_id, im), bt_run.config['hierarchical'], is_old=False)
-        results_zero = play_matches(envs, blue_team, BASELINE_TEAMS['zero']['0'], 1000, None)
+        results_zero = play_matches(envs, blue_team, BASELINE_TEAMS['zero']['00'], 1000, None)
         results_rsa = play_matches(envs, blue_team, BASELINE_TEAMS['ppo-sa-x3']['40'], 1000, None)
 
         zero_mean_len_wins = results_zero['len_wins'] / results_zero['wins'] if results_zero['wins'] else 0
