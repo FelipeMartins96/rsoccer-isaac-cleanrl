@@ -193,6 +193,12 @@ def get_policies_list(num_envs, pool):
             (idxs[3], TRAINING_TEAMS['OU']),
             (idxs[4], TRAINING_TEAMS['ZERO']),
         ]
+    elif pool == 'RSA-OU':
+        idxs = torch.arange(num_envs).split(ceil(num_envs/2))
+        return [
+            (idxs[0], TRAINING_TEAMS['RSA']),
+            (idxs[1], TRAINING_TEAMS['OU']),
+        ]
     elif pool == 'RSA.3-IL.3-JAL.3-OU-ZERO':
         idxs = torch.arange(num_envs).split([round(num_envs*0.3), round(num_envs*0.3), round(num_envs*0.3), round(num_envs*0.05), round(num_envs*0.05)])
         return [
@@ -208,12 +214,6 @@ def get_policies_list(num_envs, pool):
             (idxs[0], TRAINING_TEAMS['RSA']),
             (idxs[1], TRAINING_TEAMS['OU']),
             (idxs[2], TRAINING_TEAMS['ZERO']),
-        ]
-    elif pool == 'RSA.9-OU':
-        idxs = torch.arange(num_envs).split([round(num_envs*0.9), round(num_envs*0.1)])
-        return [
-            (idxs[0], TRAINING_TEAMS['RSA']),
-            (idxs[1], TRAINING_TEAMS['OU']),
         ]
     else:
         raise NotImplementedError # Invalid policies pool name

@@ -1,6 +1,6 @@
 EXP_NAME="exp129"
-EXP_NOTES="RSA.9-OU ep"
-EXP_ARGS="--enemy-policy RSA.9-OU --total-timesteps 2500000000"
+EXP_NOTES="RSA-OU ep"
+EXP_ARGS="--enemy-policy RSA-OU --total-timesteps 2500000000"
 case $1 in
 0) xvfb-run -a python ppo_continuous_action_isaacgym.py --exp-name $EXP_NAME --wandb-notes="$EXP_NOTES" $EXP_ARGS --env-id sa  --seed 10 --track --capture-video;;
 1) xvfb-run -a python ppo_continuous_action_isaacgym.py --exp-name $EXP_NAME --wandb-notes="$EXP_NOTES" $EXP_ARGS --env-id cma --seed 10 --track --capture-video;;
