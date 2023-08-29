@@ -209,6 +209,12 @@ def get_policies_list(num_envs, pool):
             (idxs[1], TRAINING_TEAMS['OU']),
             (idxs[2], TRAINING_TEAMS['ZERO']),
         ]
+    elif pool == 'RSA.9-OU':
+        idxs = torch.arange(num_envs).split([round(num_envs*0.9), round(num_envs*0.1)])
+        return [
+            (idxs[0], TRAINING_TEAMS['RSA']),
+            (idxs[1], TRAINING_TEAMS['OU']),
+        ]
     else:
         raise NotImplementedError # Invalid policies pool name
 
