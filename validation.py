@@ -125,8 +125,11 @@ if __name__ == "__main__":
             team_totals['atk_fouls'] += results['atk_fouls']
             team_totals['len_wins'] += results['len_wins']
             team_totals['len_losses'] += results['len_losses']
+
+            score = (results['wins'] - results['losses']) / results['matches']
+            afp = results['atk_fouls'] / results['matches']
             
-            print(f'Score: {(team_totals['wins'] - team_totals['losses']) / team_totals['matches']}, Atk-Foul: {team_totals['atk_fouls'] / team_totals['matches']}')
+            print(f'Score: {score}, Atk-Foul: {afp}')
             # if team == 'zero' or team == 'ou':
             #     run.log({f"Media/Deterministic/{team}": wandb.Video(f"{save_path}/val_{team}_{seed}/video.000-step-0.mp4")})
             # else:
