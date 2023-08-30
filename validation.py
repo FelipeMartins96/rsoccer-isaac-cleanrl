@@ -54,7 +54,7 @@ if __name__ == "__main__":
         "env_id": args.env_id
     })
     run = wandb.init(
-        project='isaac-reducing-move-bias-validation',
+        project='isaac--validation-2',
         monitor_gym=False,
         name=f"{config['exp_name']}-{args.env_id}",
         group=f"{config['exp_name']}-{args.env_id}",
@@ -115,7 +115,7 @@ if __name__ == "__main__":
         for seed in BASELINE_TEAMS[team]:
             print(f"Playing {team} {seed}")
             yellow_team = BASELINE_TEAMS[team][seed]
-            results = play_matches(envs, blue_team, yellow_team, 10000, f"{save_path}/val_{team}_{seed}")
+            results = play_matches(envs, blue_team, yellow_team, 5000, None)
 
             team_totals['matches'] += results['matches']
             team_totals['match_steps'] += results['match_steps']
@@ -126,10 +126,11 @@ if __name__ == "__main__":
             team_totals['len_wins'] += results['len_wins']
             team_totals['len_losses'] += results['len_losses']
             
-            if team == 'zero' or team == 'ou':
-                run.log({f"Media/Deterministic/{team}": wandb.Video(f"{save_path}/val_{team}_{seed}/video.000-step-0.mp4")})
-            else:
-                run.log({f"Media/{team}/{seed}": wandb.Video(f"{save_path}/val_{team}_{seed}/video.000-step-0.mp4")})
+            print(f'Score: {(team_totals['wins'] - team_totals['losses']) / team_totals['matches']}, Atk-Foul: {team_totals['atk_fouls'] / team_totals['matches']}')
+            # if team == 'zero' or team == 'ou':
+            #     run.log({f"Media/Deterministic/{team}": wandb.Video(f"{save_path}/val_{team}_{seed}/video.000-step-0.mp4")})
+            # else:
+            #     run.log({f"Media/{team}/{seed}": wandb.Video(f"{save_path}/val_{team}_{seed}/video.000-step-0.mp4")})
 
         
         # run.summary[f"results/Score/{team}"] = (team_totals['wins'] - team_totals['losses']) / team_totals['matches']
@@ -153,16 +154,16 @@ if __name__ == "__main__":
     mean_len_wins = totals['len_wins'] / totals['wins'] if totals['wins'] else 0
     mean_len_losses = totals['len_losses'] / totals['losses'] if totals['losses'] else 0
 
-    run.summary["0-Score"] = (totals['wins'] - totals['losses']) / totals['matches']
-    run.summary["1-Score 2"] = (((totals['wins'] * (1 - (mean_len_wins/600)) - (totals['losses'] * (1 - (mean_len_losses/600)))) / totals['matches']) + 1)/2
-    run.summary["2-Lenght"] = totals['match_steps'] / totals['matches']
-    run.summary["3-Lenght Wins"] = mean_len_wins
-    run.summary["4-Lenght Losses"] = mean_len_losses
-    run.summary["5-Total Wins"] = totals['wins']
-    run.summary["6-Total Losses"] = totals['losses']
-    run.summary["7-Total Draws"] = totals['draws']
-    run.summary['8-Total Atk Fouls'] = totals['atk_fouls']
-    run.summary['9-Matches'] = totals['matches']
+    run.summary["Rating/Score"] = (totals['wins'] - totals['losses']) / totals['matches']
+    # run.summary["1-Score 2"] = (((totals['wins'] * (1 - (mean_len_wins/600)) - (totals['losses'] * (1 - (mean_len_losses/600)))) / totals['matches']) + 1)/2
+    run.summary["Len/2-Lenght"] = totals['match_steps'] / totals['matches']
+    run.summary["Len/3-Lenght Wins"] = mean_len_wins
+    run.summary["Len/4-Lenght Losses"] = mean_len_losses
+    run.summary["Total/5-Total Wins"] = totals['wins']
+    run.summary["Total/6-Total Losses"] = totals['losses']
+    run.summary["Total/7-Total Draws"] = totals['draws']
+    run.summary['Total/8-Total Atk Fouls'] = totals['atk_fouls']
+    run.summary['Total/9-Matches'] = totals['matches']
 
 
     # run.summary["results/zz-all/Score"] = (totals['wins'] - totals['losses']) / totals['matches']

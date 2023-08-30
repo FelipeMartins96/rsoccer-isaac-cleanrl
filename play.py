@@ -340,8 +340,16 @@ BASELINE_TEAMS = {
         '30': get_team('ppo-cma', 'exp111/JAL/agent-82bj23f8.pt'), # TODO: remove is old
         '50': get_team('ppo-cma', 'exp111/JAL/agent-4an7994j.pt'), # TODO: remove is old
     },
-    'zero': {'00': get_team('zero')},
-    'ou': {'00': get_team('ou')},
+    'zero': {
+        '00': get_team('zero'),
+        '01': get_team('zero'),
+        '02': get_team('zero'),
+        },
+    'ou': {
+        '00': get_team('ou'),
+        '01': get_team('ou'),
+        '02': get_team('ou'),
+        },
 }
 
 TRAINING_TEAMS = {
