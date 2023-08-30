@@ -129,7 +129,8 @@ if __name__ == "__main__":
             score = (results['wins'] - results['losses']) / results['matches']
             afp = results['atk_fouls'] / results['matches']
             
-            print(f'Score: {score}, Atk-Foul: {afp}')
+            run.summary[f"Rating/{team}/{seed}"] = score
+            run.summary[f'Atk-Foul/{team}/{seed}'] = afp
             # if team == 'zero' or team == 'ou':
             #     run.log({f"Media/Deterministic/{team}": wandb.Video(f"{save_path}/val_{team}_{seed}/video.000-step-0.mp4")})
             # else:
