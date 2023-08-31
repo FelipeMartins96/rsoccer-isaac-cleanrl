@@ -35,7 +35,7 @@ if __name__ == "__main__":
         cfg = compose(config_name="vss")
     cfg = omegaconf_to_dict(cfg)
 
-    cfg['env']['numEnvs'] = 9
+    cfg['env']['numEnvs'] = 2048
     # envs = VSSGoTo(
     envs = VSS(
         cfg=cfg,
@@ -47,12 +47,13 @@ if __name__ == "__main__":
         force_render=True,
     )
     # envs = HRL(envs)
-    envs = EnemyPolicy(envs, pool='x3-cma-dma-ou-zero')
+    envs = EnemyPolicy(envs, pool='OU')
     # envs = SingleAgent(envs)
-    # envs = CMA(envs)
-    envs = DMA(envs)
+    envs = CMA(envs)
+    # envs = DMA(envs)
 
     actions = torch.ones((envs.num_environments,) + envs.action_space.shape, device=envs.rl_device) * 2
+    # actions = envs.zero_actions()
     while True:
         envs.set_speed_factor(1)
         envs.step(actions)
