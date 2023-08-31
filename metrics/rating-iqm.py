@@ -5,14 +5,20 @@ import numpy as np
 import seaborn as sns
 
 algorithms = [
-    'JAL',
     'IL',
+    'JAL',
     'RSA',
     'SA',
     ]
 
-colors = sns.color_palette('colorblind')
-color_idxs = [0,0,0,0,0]
+RED    =    (201/255,  33/255,  30/255)
+ORANGE =    (229/255, 116/255,  57/255)
+PURPLE =    (125/255,  84/255, 178/255)
+GREEN  =    ( 76/255, 147/255, 103/255)
+BLUE   =    ( 83/255, 135/255, 221/255)
+
+colors = [RED, ORANGE, PURPLE, GREEN, BLUE]
+color_idxs = [2,3,1,0]
 ATARI_100K_COLOR_DICT = dict(zip(algorithms, [colors[idx] for idx in color_idxs]))
 
 
@@ -22,7 +28,7 @@ score_dict = {}
 for alg in algorithms:
     score_dict[alg] = []
 
-csvs = ['128/data.csv', '128/data2.csv']
+csvs = ['111/data.csv', '111/data2.csv']
 
 for fi in csvs:
     df = pd.read_csv(fi)
@@ -121,13 +127,14 @@ ax.set_yticks(range(len(algorithms)))
 ax.set_yticklabels(algorithms)
 # ax.set_xlim(-0.5,1)
 plot_utils._annotate_and_decorate_axis(ax, labelsize='xx-large', ticklabelsize='xx-large')
-ax.set_title('RATING IQM', size='xx-large')
+# ax.set_title('RATING IQM', size='xx-large')
 # ax.set_ylabel('PARADIGM', size='xx-large')
-# ax.set_xlabel('RATING', size='xx-large')
+ax.set_xlabel('RATING (IQM)', size='xx-large')
 ax.spines['left'].set_visible(False)
 ax.spines['bottom'].set_visible(False)
 # fig.subplots_adjust(wspace=0.25, hspace=0.45)
 
 fig.tight_layout()
 fig.savefig('rating-iqm.png', bbox_inches='tight')
+fig.savefig('rating-iqm.pdf', bbox_inches='tight')
 # ax.xaxis.set_major_locator(MaxNLocator(4))

@@ -5,16 +5,21 @@ from rliable import plot_utils
 from matplotlib import ticker, patches
 
 algorithms = [
-    'JAL',
     'IL',
+    'JAL',
     'RSA',
     'SA',
     ]
 
-colors = sns.color_palette('colorblind')
-color_idxs = [0, 1, 2, 3, 1, 7, 8]
-ATARI_100K_COLOR_DICT = dict(zip(algorithms, [colors[idx] for idx in color_idxs]))
-
+RED    =    (201/255,  33/255,  30/255)
+ORANGE =    (229/255, 116/255,  57/255)
+PURPLE =    (125/255,  84/255, 178/255)
+GREEN  =    ( 76/255, 147/255, 103/255)
+BLUE   =    ( 83/255, 135/255, 221/255)
+colors = [RED, ORANGE, PURPLE, GREEN, BLUE]
+OUTCOMES = ['WIN', 'DRAW', 'LOSS']
+color_idxs = [3, 4, 0]
+COLOR_DICT = dict(zip(OUTCOMES, [colors[idx] for idx in color_idxs]))
 
 import pandas as pd
 
@@ -58,13 +63,13 @@ for i, alg in enumerate(algorithms):
     draw_rate = scores_dict[alg]['DRAWS'] / total_matches
     loss_rate = scores_dict[alg]['LOSSES'] / total_matches
     l, u = 0, win_rate
-    ax.barh(y=i, width=u-l, height=h, left=l, color=colors[2], alpha=0.75)
+    ax.barh(y=i, width=u-l, height=h, left=l, color=COLOR_DICT['WIN'], alpha=0.75)
     ax.text((l+u)/2, i, f'{int(win_rate*100)}%', ha='center', va='center', size='large')
     l, u = u, u+draw_rate
-    ax.barh(y=i, width=u-l, height=h, left=l, color=colors[0], alpha=0.75)
+    ax.barh(y=i, width=u-l, height=h, left=l, color=COLOR_DICT['DRAW'], alpha=0.75)
     ax.text((l+u)/2, i, f'{int(draw_rate*100)}%', ha='right', va='center', size='large')
     l, u = u, u+loss_rate
-    ax.barh(y=i, width=u-l, height=h, left=l, color=colors[3], alpha=0.75)
+    ax.barh(y=i, width=u-l, height=h, left=l, color=COLOR_DICT['LOSS'], alpha=0.75)
     ax.text((l+u)/2, i, f'{int(loss_rate*100)}%', ha='center', va='center', size='large')
     # ax.vlines(x=aggregate_scores[alg], ymin=i-7.5 * h/16, ymax=i+(7.5*h/16), color='k', alpha=0.85)
 
@@ -83,11 +88,12 @@ ax.set_yticklabels(algorithms)
 plot_utils._annotate_and_decorate_axis(ax, labelsize='xx-large', ticklabelsize='xx-large')
 # ax.set_title('RATING IQM', size='xx-large')
 # ax.set_ylabel('PARADIGM', size='xx-large')
-# ax.set_xlabel('RATING', size='xx-large')
+ax.set_xlabel('Outcomes', size='xx-large')
 ax.spines['left'].set_visible(False)
 ax.spines['bottom'].set_visible(False)
 # fig.subplots_adjust(wspace=0.25, hspace=0.45)
-
+ax.tick_params(labelleft = False)
 fig.tight_layout()
 fig.savefig('outcomes.png', bbox_inches='tight')
+fig.savefig('outcomes.pdf', bbox_inches='tight')
 # ax.xaxis.set_major_locator(MaxNLocator(4))
