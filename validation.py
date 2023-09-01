@@ -54,7 +54,7 @@ if __name__ == "__main__":
         "env_id": args.env_id
     })
     run = wandb.init(
-        project='isaac--validation-2',
+        project='isaac--validation-3',
         monitor_gym=False,
         name=f"{config['exp_name']}-{args.env_id}",
         group=f"{config['exp_name']}-{args.env_id}",
@@ -131,11 +131,16 @@ if __name__ == "__main__":
             
             run.summary[f"Rating/{team}/{seed}"] = score
             run.summary[f'Atk-Foul/{team}/{seed}'] = afp
+
             if team == 'zero' or team == 'ou':
                 run.log({f"Media/Deterministic/{team}": wandb.Video(f"{save_path}/val_{team}_{seed}/video.000-step-0.mp4")})
             else:
                 run.log({f"Media/{team}/{seed}": wandb.Video(f"{save_path}/val_{team}_{seed}/video.000-step-0.mp4")})
 
+        run.summary[f"Outcomes/wins/{team}"] = team_totals['wins']
+        run.summary[f"Outcomes/losses/{team}"] = team_totals['losses']
+        run.summary[f"Outcomes/draws/{team}"] = team_totals['draws']
+        run.summary[f"Outcomes/atk_fouls/{team}"] = team_totals['atk_fouls']
         
         # run.summary[f"results/Score/{team}"] = (team_totals['wins'] - team_totals['losses']) / team_totals['matches']
         # run.summary[f"results/Lenght/{team}"] = team_totals['match_steps'] / team_totals['matches']
