@@ -5,16 +5,21 @@ from rliable import plot_utils
 from matplotlib import ticker, patches
 
 algorithms = [
-    'JAL',
     'IL',
+    'JAL',
     'RSA',
     'SA',
     ]
 
-colors = sns.color_palette('colorblind')
-color_idxs = [0, 1, 2, 3, 1, 7, 8]
-ATARI_100K_COLOR_DICT = dict(zip(algorithms, [colors[idx] for idx in color_idxs]))
-
+RED    =    (201/255,  33/255,  30/255)
+ORANGE =    (229/255, 116/255,  57/255)
+PURPLE =    (125/255,  84/255, 178/255)
+GREEN  =    ( 76/255, 147/255, 103/255)
+BLUE   =    ( 83/255, 135/255, 221/255)
+colors = [RED, ORANGE, PURPLE, GREEN, BLUE]
+OUTCOMES = ['WIN', 'DRAW', 'LOSS', 'FOUL']
+color_idxs = [3, 4, 0, 1]
+COLOR_DICT = dict(zip(OUTCOMES, [colors[idx] for idx in color_idxs]))
 
 import pandas as pd
 
@@ -27,7 +32,7 @@ for alg in algorithms:
         'ATTACK FOUL': 0,
     }
 
-csvs = ['128/data.csv', '128/data2.csv']
+csvs = ['125/data.csv', '125/data2.csv']
 
 for fi in csvs:
     df = pd.read_csv(fi)
@@ -61,24 +66,24 @@ for i, alg in enumerate(algorithms):
     loss_rate = scores_dict[alg]['LOSSES'] / total_matches
     foul_rate = scores_dict[alg]['ATTACK FOUL'] / total_matches
     l, u = 0, win_rate
-    ax.barh(y=i, width=u-l, height=h, left=l, color=colors[2], alpha=0.75)
+    ax.barh(y=i, width=u-l, height=h, left=l, color=COLOR_DICT['WIN'], alpha=0.75)
     ax.text((l+u)/2, i, f'{int(win_rate*100)}%', ha='center', va='center', size='large')
     l, u = u, u+draw_rate
-    ax.barh(y=i, width=u-l, height=h, left=l, color=colors[0], alpha=0.75)
-    ax.text((l+u)/2, i, f'{int(draw_rate*100)}%', ha='center', va='center', size='large')
+    ax.barh(y=i, width=u-l, height=h, left=l, color=COLOR_DICT['DRAW'], alpha=0.75)
+    # ax.text((l+u)/2, i, f'{int(draw_rate*100)}%', ha='center', va='center', size='large')
     l, u = u, u+loss_rate
-    ax.barh(y=i, width=u-l, height=h, left=l, color=colors[3], alpha=0.75)
+    ax.barh(y=i, width=u-l, height=h, left=l, color=COLOR_DICT['LOSS'], alpha=0.75)
     ax.text((l+u)/2, i, f'{int(loss_rate*100)}%', ha='center', va='center', size='large')
     l, u = u, u+foul_rate
-    ax.barh(y=i, width=u-l, height=h, left=l, color=colors[1], alpha=0.75)
-    ax.text((l+u)/2, i, f'{int(foul_rate*100)}%', ha='center', va='center', size='large')
+    ax.barh(y=i, width=u-l, height=h, left=l, color=COLOR_DICT['FOUL'], alpha=0.75)
+    ax.text((l+u)/2, i, f'{int(foul_rate*100)}%', ha='right', va='center', size='large')
     # ax.vlines(x=aggregate_scores[alg], ymin=i-7.5 * h/16, ymax=i+(7.5*h/16), color='k', alpha=0.85)
 
-fake_patches = [patches.Patch(color=colors[c], 
-                               alpha=0.75) for c in [2, 0, 3, 1]]
-legend = fig.legend(fake_patches, ['WINS', 'DRAWS', 'LOSSES', 'FOUL'], loc='upper center', 
+fake_patches = [patches.Patch(color=COLOR_DICT[c], 
+                               alpha=0.75) for c in OUTCOMES]
+legend = fig.legend(fake_patches, OUTCOMES, loc='upper center', 
                     fancybox=True, ncol=len(algorithms), 
-                    fontsize='x-large',
+                    fontsize='large',
                     bbox_to_anchor=(0.45, 1.1))
 
 ax.xaxis.set_major_formatter(ticker.PercentFormatter(xmax=1))
@@ -89,11 +94,12 @@ ax.set_yticklabels(algorithms)
 plot_utils._annotate_and_decorate_axis(ax, labelsize='xx-large', ticklabelsize='xx-large')
 # ax.set_title('RATING IQM', size='xx-large')
 # ax.set_ylabel('PARADIGM', size='xx-large')
-# ax.set_xlabel('RATING', size='xx-large')
+ax.set_xlabel('Outcomes', size='xx-large')
 ax.spines['left'].set_visible(False)
 ax.spines['bottom'].set_visible(False)
 # fig.subplots_adjust(wspace=0.25, hspace=0.45)
-
+ax.tick_params(labelleft = False)
 fig.tight_layout()
-fig.savefig('outcomes.png', bbox_inches='tight')
+fig.savefig('outcomes-foul.png', bbox_inches='tight')
+fig.savefig('outcomes-foul.pdf', bbox_inches='tight')
 # ax.xaxis.set_major_locator(MaxNLocator(4))

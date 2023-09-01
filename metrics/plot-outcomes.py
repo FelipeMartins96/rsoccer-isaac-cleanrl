@@ -73,9 +73,9 @@ for i, alg in enumerate(algorithms):
     ax.text((l+u)/2, i, f'{int(loss_rate*100)}%', ha='center', va='center', size='large')
     # ax.vlines(x=aggregate_scores[alg], ymin=i-7.5 * h/16, ymax=i+(7.5*h/16), color='k', alpha=0.85)
 
-fake_patches = [patches.Patch(color=colors[c], 
-                               alpha=0.75) for c in [2, 0, 3]]
-legend = fig.legend(fake_patches, ['WINS', 'DRAWS', 'LOSSES'], loc='upper center', 
+fake_patches = [patches.Patch(color=COLOR_DICT[c], 
+                               alpha=0.75) for c in OUTCOMES]
+legend = fig.legend(fake_patches, OUTCOMES, loc='upper center', 
                     fancybox=True, ncol=len(algorithms), 
                     fontsize='x-large',
                     bbox_to_anchor=(0.45, 1.1))

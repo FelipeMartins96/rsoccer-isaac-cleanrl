@@ -28,7 +28,7 @@ score_dict = {}
 for alg in algorithms:
     score_dict[alg] = []
 
-csvs = ['121/data.csv', '121/data2.csv']
+csvs = ['125/data.csv', '125/data2.csv']
 
 for fi in csvs:
     df = pd.read_csv(fi)
