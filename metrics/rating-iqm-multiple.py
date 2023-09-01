@@ -16,8 +16,8 @@ colors = sns.color_palette('colorblind')
 
 import pandas as pd
 
-experiments = [(125, 'OU'), (128,'OU-RSA'), (126, 'RSA')]
-color_idxs = [0,1,2]
+experiments = [(111, 'RANDOM ACTION OPPONENTS'), (121,'RSA OPPONENTS')]
+color_idxs = [5,0,2]
 COLOR_DICT = dict(zip([n[1] for n in experiments], [colors[idx] for idx in color_idxs]))
 
 aggregate_scores, aggregate_score_cis = {}, {}
@@ -114,7 +114,7 @@ for exp_id, exp_name in experiments:
 import matplotlib.pyplot as plt
 from matplotlib import patches
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=(8,4))
 h = 0.6
 algorithm_labels = []
 
@@ -136,13 +136,14 @@ ax.set_yticks(range(len(algorithms)))
 ax.set_yticklabels(algorithms)
 # ax.set_xlim(-0.5,1)
 plot_utils._annotate_and_decorate_axis(ax, labelsize='xx-large', ticklabelsize='xx-large')
-ax.set_title('RATING IQM', size='xx-large')
+# ax.set_title('RATING IQM', size='xx-large')
 # ax.set_ylabel('PARADIGM', size='xx-large')
-# ax.set_xlabel('RATING', size='xx-large')
+ax.set_xlabel('RATING (IQM)', size='xx-large')
 ax.spines['left'].set_visible(False)
 ax.spines['bottom'].set_visible(False)
 # fig.subplots_adjust(wspace=0.25, hspace=0.45)
 
 fig.tight_layout()
-fig.savefig('rating-iqm.png', bbox_inches='tight')
+fig.savefig('rating-iqm-multiple.png', bbox_inches='tight')
+fig.savefig('rating-iqm-multiple.pdf', bbox_inches='tight')
 # ax.xaxis.set_major_locator(MaxNLocator(4))

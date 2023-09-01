@@ -31,7 +31,7 @@ for alg in algorithms:
         'LOSSES': 0,
     }
 
-csvs = ['111/data.csv', '111/data2.csv']
+csvs = ['121/data.csv', '121/data2.csv']
 
 for fi in csvs:
     df = pd.read_csv(fi)
