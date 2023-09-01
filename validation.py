@@ -115,7 +115,7 @@ if __name__ == "__main__":
         for seed in BASELINE_TEAMS[team]:
             print(f"Playing {team} {seed}")
             yellow_team = BASELINE_TEAMS[team][seed]
-            results = play_matches(envs, blue_team, yellow_team, 5000, None)
+            results = play_matches(envs, blue_team, yellow_team, 5000, f"{save_path}/val_{team}_{seed}")
 
             team_totals['matches'] += results['matches']
             team_totals['match_steps'] += results['match_steps']
@@ -131,10 +131,10 @@ if __name__ == "__main__":
             
             run.summary[f"Rating/{team}/{seed}"] = score
             run.summary[f'Atk-Foul/{team}/{seed}'] = afp
-            # if team == 'zero' or team == 'ou':
-            #     run.log({f"Media/Deterministic/{team}": wandb.Video(f"{save_path}/val_{team}_{seed}/video.000-step-0.mp4")})
-            # else:
-            #     run.log({f"Media/{team}/{seed}": wandb.Video(f"{save_path}/val_{team}_{seed}/video.000-step-0.mp4")})
+            if team == 'zero' or team == 'ou':
+                run.log({f"Media/Deterministic/{team}": wandb.Video(f"{save_path}/val_{team}_{seed}/video.000-step-0.mp4")})
+            else:
+                run.log({f"Media/{team}/{seed}": wandb.Video(f"{save_path}/val_{team}_{seed}/video.000-step-0.mp4")})
 
         
         # run.summary[f"results/Score/{team}"] = (team_totals['wins'] - team_totals['losses']) / team_totals['matches']
