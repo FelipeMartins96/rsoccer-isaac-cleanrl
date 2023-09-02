@@ -31,7 +31,7 @@ for alg in algorithms:
         'LOSSES': 0,
     }
 
-csvs = ['121/data.csv', '121/data2.csv']
+csvs = ['111/data.csv', '111/data2.csv']
 
 for fi in csvs:
     df = pd.read_csv(fi)
@@ -67,7 +67,7 @@ for i, alg in enumerate(algorithms):
     ax.text((l+u)/2, i, f'{int(win_rate*100)}%', ha='center', va='center', size='large')
     l, u = u, u+draw_rate
     ax.barh(y=i, width=u-l, height=h, left=l, color=COLOR_DICT['DRAW'], alpha=0.75)
-    ax.text((l+u)/2, i, f'{int(draw_rate*100)}%', ha='right', va='center', size='large')
+    # ax.text((l+u)/2, i, f'{int(draw_rate*100)}%', ha='right', va='center', size='large')
     l, u = u, u+loss_rate
     ax.barh(y=i, width=u-l, height=h, left=l, color=COLOR_DICT['LOSS'], alpha=0.75)
     ax.text((l+u)/2, i, f'{int(loss_rate*100)}%', ha='center', va='center', size='large')

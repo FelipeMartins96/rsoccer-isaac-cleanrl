@@ -16,7 +16,7 @@ colors = sns.color_palette('colorblind')
 
 import pandas as pd
 
-experiments = [(125, 'RANDOM ACTION OPPONENTS'), (126,'RSA OPPONENTS')]#, (128,'RSA-OU')]
+experiments = [(111, 'TRAINING WITHOUT FOULS'), (125,'TRAINING WITH FOULS')]
 color_idxs = [5,0,2]
 COLOR_DICT = dict(zip([n[1] for n in experiments], [colors[idx] for idx in color_idxs]))
 
@@ -28,7 +28,7 @@ for exp_id, exp_name in experiments:
     for alg in algorithms:
         score_dict[alg] = []
 
-    csvs = [f'{exp_id}/data.csv', f'{exp_id}/data2.csv']
+    csvs = [f'{exp_id}-data.csv', f'{exp_id}-data2.csv']
 
     for fi in csvs:
         df = pd.read_csv(fi)

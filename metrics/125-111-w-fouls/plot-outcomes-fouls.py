@@ -32,7 +32,7 @@ for alg in algorithms:
         'ATTACK FOUL': 0,
     }
 
-csvs = ['125/data.csv', '125/data2.csv']
+csvs = ['111-data.csv', '111-data2.csv']
 
 for fi in csvs:
     df = pd.read_csv(fi)
