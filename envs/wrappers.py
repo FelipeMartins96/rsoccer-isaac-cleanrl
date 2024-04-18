@@ -83,6 +83,42 @@ def make_env_goto(args):
         )
     return envs
 
+def make_penalty_env(args):
+    from hydra import compose, initialize
+    from isaacgymenvs.utils.reformat import omegaconf_to_dict
+    with initialize(config_path="."):
+        cfg = compose(config_name="vss")
+    cfg = omegaconf_to_dict(cfg)
+    assert args.cuda
+    cfg['env']['numEnvs'] = args.num_envs
+    if args.env_id == 'dma':
+        assert args.num_envs % 3 == 0
+        cfg['env']['numEnvs'] = int(args.num_envs / 3)
+    if args.no_move:
+        cfg['env']['rew_weights']['move'] = 0.0
+    if args.no_energy:
+        cfg['env']['rew_weights']['energy'] = 0.0
+    
+    from envs.vss_penalty import VSSPenalty
+    envs = VSSPenalty(
+            cfg=cfg,
+            rl_device="cuda:0",
+            sim_device="cuda:0",
+            graphics_device_id=0,
+            headless=True,
+            virtual_screen_capture=False,
+            force_render=False,
+        )
+    if args.hierarchical:
+        envs = HRL(envs)
+
+    wrappers = {
+        'sa': SingleAgent,
+        'cma': CMA,
+        'dma': DMA,
+    }
+    return envs, wrappers[args.env_id](envs)
+
 class RecordEpisodeStatisticsTorchVSS(gym.Wrapper):
     def __init__(self, env, device):
         super().__init__(env)

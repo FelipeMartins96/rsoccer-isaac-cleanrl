@@ -28,7 +28,6 @@
 
 # docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/ppo/#ppo_continuous_action_isaacgympy
 import argparse
-import os
 import random
 import time
 from distutils.util import strtobool
@@ -218,15 +217,19 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
 
     # env setup
-    if args.env_id != 'goto':
-        from envs.wrappers import make_env
-        from envs.wrappers import RecordEpisodeStatisticsTorchVSS as RecordEpisodeStatisticsTorch
-        unwrapped_env, envs = make_env(args)
-    else:
+    if args.env_id == 'goto':
         from envs.wrappers import make_env_goto
         from envs.wrappers import RecordEpisodeStatisticsTorch
         unwrapped_env = None
         envs = make_env_goto(args)
+    elif args.env_id == 'penalty':
+        from envs.wrappers import make_penalty_env
+        from envs.wrappers import RecordEpisodeStatisticsTorch
+        unwrapped_env, envs = make_penalty_env(args)
+    else:
+        from envs.wrappers import make_env
+        from envs.wrappers import RecordEpisodeStatisticsTorchVSS as RecordEpisodeStatisticsTorch
+        unwrapped_env, envs = make_env(args)
 
     if args.capture_video:
         envs.is_vector_env = True
