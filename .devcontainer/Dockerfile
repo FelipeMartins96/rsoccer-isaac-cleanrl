@@ -15,4 +15,4 @@ RUN cd IsaacGymEnvs &&\
 
 USER gymuser
 
-RUN pip install gym==0.23.1 wandb==0.14.2 pyglet==1.5.27
+RUN pip install gym==0.24.1 wandb==0.14.2 pyglet==1.5.27 protobuf==3.20.*
