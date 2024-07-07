@@ -27,7 +27,7 @@ NUM_TEAMS = 2
 NUM_ROBOTS = 1
 
 
-class VSSGoTo(VecTask):
+class VSSPenalty(VecTask):
     metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": 20}
     #####################################################################
     ###==============================init=============================###

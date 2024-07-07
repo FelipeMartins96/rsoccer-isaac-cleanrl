@@ -87,7 +87,7 @@ def make_penalty_env(args):
     from hydra import compose, initialize
     from isaacgymenvs.utils.reformat import omegaconf_to_dict
     with initialize(config_path="."):
-        cfg = compose(config_name="vss")
+        cfg = compose(config_name="vss_penalty")
     cfg = omegaconf_to_dict(cfg)
     assert args.cuda
     cfg['env']['numEnvs'] = args.num_envs
