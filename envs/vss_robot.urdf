@@ -1,12 +1,12 @@
 <robot name="vss">
     <link name="body">
         <inertial>
-            <origin xyz="0.0 0.0 -0.015" rpy="0.0 0.0 0.0"/>
-            <mass value="0.4"/>
+            <origin xyz="0.0 0.0 -0.024" rpy="0.0 0.0 0.0"/>
+            <mass value="0.296"/>
         </inertial>
         <visual>
             <geometry>
-                <box size="0.07 0.06 0.056"/>
+                <box size="0.08 0.08 0.056"/>
             </geometry>
             <material name="Black">
                 <color rgba="0 0.0 0.0 1.0"/>
@@ -14,40 +14,56 @@
         </visual>
         <collision>
             <geometry>
-                <box size="0.07 0.07 0.056"/>
+                <box size="0.08 0.08 0.056"/>
             </geometry>
         </collision>
     </link>
 
     <link name="leftWheel">
         <inertial>
-            <mass value="0.02"/>
+            <mass value="0.021"/>
         </inertial>
         <visual>
             <geometry>
-                <cylinder radius="0.024" length="0.0025"/>
+                <cylinder radius="0.026" length="0.0025"/>
             </geometry>
         </visual>
         <collision>
             <geometry>
-                <sphere radius="0.024"/>
+                <sphere radius="0.026"/>
             </geometry>
+            <surface>
+                <friction>
+                    <ode>
+                        <mu>0.8413767350560942</mu>
+                        <mu2>1.0</mu2>
+                    </ode>
+                </friction>
+            </surface>
         </collision>
     </link>
 
     <link name="rightWheel">
         <inertial>
-            <mass value="0.02"/>
+            <mass value="0.021"/>
         </inertial>
         <visual>
             <geometry>
-                <cylinder radius="0.024" length="0.0025"/>
+                <cylinder radius="0.026" length="0.0025"/>
             </geometry>
         </visual>
         <collision>
             <geometry>
-                <sphere radius="0.024"/>
+                <sphere radius="0.026"/>
             </geometry>
+            <surface>
+                <friction>
+                    <ode>
+                        <mu>0.8413767350560942</mu>
+                        <mu2>1.0</mu2>
+                    </ode>
+                </friction>
+            </surface>
         </collision>
     </link>
 
@@ -56,7 +72,7 @@
         <axis xyz="0.0 0.0 1.0"/>
         <parent link="body" />
         <child link="leftWheel" />
-        <limit effort="0.1" velocity="150.0"/>
+        <limit effort="0.0211" velocity="133.0"/>
     </joint>
 
     <joint name="body_rightWheel" type="continuous">
@@ -64,7 +80,7 @@
         <axis xyz="0.0 0.0 1.0"/>
         <parent link="body" />
         <child link="rightWheel" />
-        <limit effort="0.1" velocity="150.0"/>
+        <limit effort="0.0211" velocity="133.0"/>
     </joint>
 
     <link name="tagId">
